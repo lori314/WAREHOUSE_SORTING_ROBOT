@@ -53,6 +53,7 @@ flowchart LR
 |-- README.zh-CN.md
 |-- start_dashboard.sh
 |-- media/
+|   |-- dashboard-preview.png
 |   |-- grasping-demo.gif
 |   `-- navigation-demo.gif
 `-- src/
@@ -134,11 +135,21 @@ roslaunch arm_grab_task stack_sort_field.launch rviz:=true
 
 ## Web 监控面板
 
+![仓库分拣机器人 Web 监控面板](media/dashboard-preview.png)
+
+面板集中展示实时相机与检测框、占用栅格地图、机器人位姿、激光扫描、规划与实际路径、任务进度、夹取诊断和操作控制。
+
 ```bash
 ./start_dashboard.sh
 ```
 
 在同一网络的电脑上访问 `http://ROBOT_IP:8000/dashboard.html`。启动模式和端口说明见 [面板指南](src/arm_grab_task/web/README.md)。
+
+如需在没有 ROS 的环境中预览界面，可启动静态服务后访问 `http://localhost:8000/dashboard.html?demo=1`：
+
+```bash
+python3 -m http.server 8000 -d src/arm_grab_task/web
+```
 
 ## 安全提示
 

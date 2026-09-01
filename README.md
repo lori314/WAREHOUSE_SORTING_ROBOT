@@ -53,6 +53,7 @@ The main workflow follows `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`, with lo
 |-- README.zh-CN.md
 |-- start_dashboard.sh
 |-- media/
+|   |-- dashboard-preview.png
 |   |-- grasping-demo.gif
 |   `-- navigation-demo.gif
 `-- src/
@@ -134,11 +135,21 @@ Generated maps, zone poses, camera features, and run reports are local runtime d
 
 ## Web Dashboard
 
+![Warehouse sorting robot web dashboard](media/dashboard-preview.png)
+
+The dashboard combines the live camera feed and detection overlay with the occupancy map, robot pose, laser scan, planned and actual paths, task progress, grasp diagnostics, and operator controls.
+
 ```bash
 ./start_dashboard.sh
 ```
 
 Open `http://ROBOT_IP:8000/dashboard.html` from a computer on the same network. See the [dashboard guide](src/arm_grab_task/web/README.md) for launch modes and ports.
+
+For a ROS-independent interface preview, serve the web directory and open `http://localhost:8000/dashboard.html?demo=1`:
+
+```bash
+python3 -m http.server 8000 -d src/arm_grab_task/web
+```
 
 ## Safety Notes
 

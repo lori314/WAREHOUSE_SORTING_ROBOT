@@ -511,6 +511,7 @@ const CONFIG = {
   mapCanvasSize: 520,
   metersPerPx: 0.05,
 };
+const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
 
 const COLOR_MAP = {
   green:  [10, 230, 68],
@@ -907,6 +908,8 @@ function renderDetectionOverlay() {
 
   const scaleX = imgW / CONFIG.cameraWidth;
   const scaleY = imgH / CONFIG.cameraHeight;
+  const offsetX = Math.max(0, (overlayLayer.clientWidth - imgW) / 2);
+  const offsetY = Math.max(0, (overlayLayer.clientHeight - imgH) / 2);
 
   for (const [color, det] of Object.entries(latestStatus.detections)) {
     if (det.cx == null || det.cy == null) continue;
@@ -915,8 +918,8 @@ function renderDetectionOverlay() {
 
     // Bounding box (size based on sqrt(area) or fallback)
     const boxPx = Math.max(24, Math.min(140, Math.sqrt(det.area || 2500) * 1.2 * scaleX));
-    const left = det.cx * scaleX;
-    const top  = det.cy * scaleY;
+    const left = offsetX + det.cx * scaleX;
+    const top  = offsetY + det.cy * scaleY;
 
     const box = document.createElement('div');
     box.className = 'detection-box';
@@ -1230,7 +1233,6 @@ function renderLoop() {
   drawOccupancyGrid(cw, ch);
   drawPaths(cw, ch);
   drawLaserScan(cw, ch);
-  drawZoneLabels(cw, ch);
   drawMarkers(latestFieldMarkers, cw, ch);
   drawMarkers(latestStackMarkers.anchors, cw, ch);
   drawMarkers(latestStackMarkers.dropBases, cw, ch);
@@ -1597,6 +1599,102 @@ function initRosConnection() {
 // ═══════════════════════════════════════════
 //  Startup
 // ═══════════════════════════════════════════
+function initDemoMode() {
+  rosConnected = true;
+  connDot.classList.add('online');
+  cameraFeed.removeAttribute('crossorigin');
+  cameraFeed.src = 'demo-camera.jpg';
+  cameraFeed.onload = () => {
+    cameraFeed.classList.remove('loading');
+    cameraPh.style.display = 'none';
+    renderDetectionOverlay();
+  };
+  camResolution.textContent = '960×540 · DEMO';
+
+  latestStatus = {
+    state: 'PICK',
+    state_reason: '目标已锁定，夹爪闭合中',
+    target_color: 'red',
+    total_done: 3,
+    total_goal: 6,
+    stack_count: { green: 1, red: 2 },
+    last_cycle_time: 38.6,
+    last_depth: 0.62,
+    pick_attempts: 4,
+    pick_retries_total: 1,
+    detections: {
+      red: { cx: 380, cy: 315, area: 7600, depth: 0.62 },
+    },
+  };
+  latestGrabStatus = {
+    step: 'grab',
+    color: 'red',
+    side: 'center',
+    y_offset: 0.0,
+    color_delta: 0.04,
+    object_y: 0.01,
+  };
+
+  const width = 140;
+  const height = 100;
+  const data = new Int8Array(width * height);
+  const setCell = (x, y, value = 100) => {
+    if (x >= 0 && x < width && y >= 0 && y < height) data[y * width + x] = value;
+  };
+  for (let x = 0; x < width; x++) {
+    setCell(x, 0);
+    setCell(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    setCell(0, y);
+    setCell(width - 1, y);
+  }
+  for (let x = 24; x < 48; x++) for (let y = 18; y < 34; y++) setCell(x, y);
+  for (let x = 86; x < 118; x++) for (let y = 60; y < 77; y++) setCell(x, y);
+  for (let x = 28; x < 54; x++) for (let y = 68; y < 82; y++) setCell(x, y);
+
+  mapInfo = {
+    width: width,
+    height: height,
+    resolution: 0.05,
+    origin: { position: { x: -3.5, y: -2.5 } },
+  };
+  mapData = data;
+  mapOffscreen = buildOffscreenMap(mapInfo, mapData);
+  setInitialView(mapInfo);
+  mapReceived = true;
+  mapLoading.style.display = 'none';
+
+  latestAmclPose = { x: 0.15, y: -0.25, yaw: 0.42 };
+  latestScan = Array.from({ length: 90 }, (_, i) => {
+    const angle = i / 90 * Math.PI * 2;
+    const radius = 1.15 + 0.12 * Math.sin(i * 0.55);
+    return {
+      x: latestAmclPose.x + radius * Math.cos(angle),
+      y: latestAmclPose.y + radius * Math.sin(angle),
+    };
+  });
+  latestPlannedPath = [
+    { x: -2.2, y: -1.45 }, { x: -1.2, y: -0.85 },
+    { x: 0.1, y: -0.25 }, { x: 1.25, y: 0.45 }, { x: 2.3, y: 1.3 },
+  ];
+  latestActualPath = [
+    { x: -2.2, y: -1.45 }, { x: -1.25, y: -0.92 },
+    { x: -0.45, y: -0.55 }, { x: 0.15, y: -0.25 },
+  ];
+  latestFieldMarkers = [
+    { type: 9, text: 'A · PICK', pose: { position: { x: -2.0, y: -1.45 } } },
+    { type: 9, text: 'B · GREEN', pose: { position: { x: -1.9, y: 1.55 } } },
+    { type: 9, text: 'C · RED', pose: { position: { x: 2.0, y: 1.45 } } },
+  ];
+
+  updateStatusPanel();
+  updateControlButtons();
+  setOperatorMessage('演示数据 · 流程运行中', 'ok');
+  requestAnimationFrame(renderLoop);
+  console.log('[Dashboard] Demo mode initialized');
+}
+
 function init() {
   confirmStartBtn.addEventListener('click', callConfirmStart);
   emergencyStopBtn.addEventListener('pointerdown', triggerManualEmergencyStop);
@@ -1607,6 +1705,10 @@ function init() {
     }
   });
   faultCloseBtn.addEventListener('click', closeFaultModal);
+  if (DEMO_MODE) {
+    initDemoMode();
+    return;
+  }
   startCameraFeed();
   if (typeof ROSLIB === 'undefined') {
     setOperatorMessage('roslibjs 未加载', 'error');
