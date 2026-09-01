@@ -18,10 +18,10 @@ source ~/catkin_ws/devel/setup.bash
 rosrun arm_grab_task run_stack_sort_acceptance.py --timeout 900 --settle-seconds 1.5
 ```
 
-最近一次完整验收已通过：
+最近一次 Gazebo 完整验收已通过：
 
 - 6 次取放成功，0 次失败，0 次重试
-- 绿色 3 个、蓝色 3 个均完成真实夹取抬升验证：`[PHYS-GRASP] lifted`
+- 绿色 3 个、蓝色 3 个均通过 Gazebo 物理接触后的模型抬升判据：`[PHYS-GRASP] lifted`
 - 未使用抓取吸附：`gazebo_attach_on_pick=false`
 - 未使用放置瞬移稳定：`gazebo_stabilize_stack_on_release=false`
 - 最终堆叠高度约为 `0.78 / 0.88 / 0.98`
@@ -36,7 +36,7 @@ rosrun arm_grab_task run_stack_sort_acceptance.py --timeout 900 --settle-seconds
 - `gazebo_stabilize_stack_on_release=false`：释放后不把方块移动到堆叠中心。
 - `gazebo_initial_model_poses`：只在启动阶段把 6 个方块放回 A 桌，避免 Gazebo 并发生成时方块掉到地面；该步骤标记为 `[SIM-INIT]`，不参与抓取/堆叠验收。
 
-仿真通过后再部署实机；实机部署保留同一套状态机和调参接口，Gazebo 专用参数不作为实机抓取依据。
+仿真通过后再部署实机。两条路径共享同一个任务编排器和大部分调参接口，但当前默认真机配置在锁定目标颜色后会直接进入 `PICK`，将精细靠近与抓取交给已有 WaterPlus/WPB 抓取链路；`ALIGN/APPROACH` 主要用于仿真或自定义靠近路径。Gazebo 专用参数不作为实机抓取依据。
 
 ## 现场调参入口
 

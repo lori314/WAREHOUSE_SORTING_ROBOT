@@ -2,9 +2,9 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-A ROS Noetic project for warehouse-style cargo perception, grasping, navigation, sorting, and multi-layer stacking on a WPB Home-compatible mobile manipulator.
+A ROS Noetic integration project for warehouse-style cargo sorting on a WPB Home-compatible mobile manipulator. The project adds RGB-D color perception, task orchestration, field calibration, simulation acceptance, and a browser-based monitoring dashboard around the existing ROS/WPB platform.
 
-The repository contains the task pipeline, Gazebo acceptance scenarios, field calibration tools, real-robot launch files, and a browser-based monitoring dashboard.
+The repository contains the sorting pipeline, Gazebo acceptance scenarios, field calibration tools, real-robot launch files, and the monitoring dashboard. It runs on top of the existing WPB/ROS driver, navigation, localization, and grasp packages.
 
 ## Real-Robot Demos
 
@@ -12,7 +12,7 @@ The repository contains the task pipeline, Gazebo acceptance scenarios, field ca
 
 ![The robot grasps, lifts, and transports a colored box](media/grasping-demo.gif)
 
-The demo shows approach, gripper closure, lift confirmation, and stable retention while the cargo is moved.
+The demo shows the integrated WPB grasp behavior approaching the target, closing the gripper, lifting the box, and retaining it while the mobile base moves.
 
 ### Mobile-base navigation
 
@@ -21,12 +21,12 @@ The demo shows approach, gripper closure, lift confirmation, and stable retentio
 ## Capabilities
 
 - RGB-D-based colored cargo detection and target selection.
-- WPB grasp-action integration with lift verification.
-- Mapping, AMCL localization, and A/B/C work-zone calibration.
+- Integration with the existing WPB grasp action on the current physical-robot path, including result/status monitoring.
+- Field tooling for GMapping/AMCL-based localization and A/B/C work-zone calibration.
 - Color-based routing to separate drop zones.
-- Configurable multi-layer stacking positions.
+- Configurable stack-height bookkeeping and placement logic in the simulation/custom-control path.
 - Task state machine with timeouts, retries, and localization fault stops.
-- Gazebo acceptance scripts with JSON and Markdown reports.
+- Gazebo acceptance scripts and runtime metrics exported as JSON/CSV/text reports.
 - Web dashboard for task state, logs, video streams, and runtime controls.
 
 ## System Flow
@@ -43,7 +43,20 @@ flowchart LR
     Task --> Dashboard[Web dashboard and reports]
 ```
 
-The main workflow follows `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`, with localization checks and recovery transitions around the motion stages.
+Simulation and the current physical robot use slightly different grasp flows:
+
+- **Simulation / custom-control path:** `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`. The project pipeline performs visual centering and short-range approach before executing the pick-and-place sequence.
+- **Current real-robot path:** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`. After the project pipeline locks a target color, it delegates fine target approach and grasp execution to the existing WaterPlus/WPB grasp stack (`wpb_home_objects_3d` + `wpb_home_grab_action`). The sorting pipeline resumes after `/wpb_home/grab_result=done` and routes the box to the corresponding work zone.
+
+In the current real-robot configuration, `ALIGN` and `APPROACH` are skipped because the WPB grasp stack handles the final approach.
+
+## Implementation
+
+Project code covers RGB-D color detection, target selection and sorting orchestration, state/metrics reporting, simulation pick-place logic, field calibration helpers, launch/config integration, acceptance scripts, and the Web dashboard.
+
+The physical-robot setup also uses existing WPB Home hardware drivers, Kinect/RPLIDAR drivers, ROS Navigation, AMCL/GMapping, `wpb_home_objects_3d`, and `wpb_home_grab_action`.
+
+The included physical-robot demos show pick-and-transport and mobile-base navigation. Multi-level placement is exercised in the Gazebo workflow.
 
 ## Repository Layout
 
@@ -105,7 +118,7 @@ rosrun arm_grab_task run_stack_sort_acceptance.py \
   --timeout 900 --settle-seconds 1.5
 ```
 
-The default scenario checks six pick-and-place operations, per-color completion counts, and physical lift events. Reports are written to `/tmp/arm_grab_task_reports/`.
+The default Gazebo scenario checks six pick-and-place operations, per-color completion counts, and model-lift criteria after gripper contact. Reports are written to `/tmp/arm_grab_task_reports/`.
 
 ## Real-Robot Workflow
 
@@ -131,7 +144,7 @@ rosrun warehouse_tuning field_calibration_wizard.py \
 roslaunch arm_grab_task stack_sort_field.launch rviz:=true
 ```
 
-Generated maps, zone poses, camera features, and run reports are local runtime data and are ignored by Git.
+In the default real-robot configuration, the project pipeline is responsible for localization, color-based target selection, task state, and B/C routing, while the existing WPB grasp behavior performs the final object approach and grasp sequence. Generated maps, zone poses, camera features, and run reports are local runtime data and are ignored by Git.
 
 ## Web Dashboard
 
@@ -156,8 +169,7 @@ python3 -m http.server 8000 -d src/arm_grab_task/web
 - Clear the robot's travel and arm workspace before enabling real motion.
 - Verify the emergency stop, base direction, gripper travel, and localization quality.
 - Start with dry-run or unit-test modes after changing hardware or calibration.
-- Do not use the Gazebo-only helper parameters as evidence of a successful physical grasp.
 
 ## License
 
-No project-level open-source license is currently provided. Unless separate permission is granted by the rights holders, the repository is intended for study and project demonstration only.
+No project-level open-source license has been added yet.

@@ -281,7 +281,7 @@ rostopic echo /wpb_home/grab_result
 rostopic hz /kinect2/qhd/points
 ```
 
-状态应从 `SEARCH` 进入 `ALIGN -> APPROACH -> PICK`。进入 `PICK` 后如果没有 `[PICK-WPB] grab object=...`，优先查 `/kinect2/qhd/points` 和 `wpb_home_objects_3d`。
+当前默认真机配置下，锁定颜色后状态应从 `SEARCH` 直接进入 `PICK`（日志通常带 `reason=wpb_direct_color_locked`）。`ALIGN/APPROACH` 属于仿真/自定义靠近路径，只有关闭 `wpb_direct_pick_after_color_lock` 等直接抓取配置时才会出现。进入 `PICK` 后如果没有 `[PICK-WPB] grab object=...`，优先查 `/kinect2/qhd/points` 和 `wpb_home_objects_3d`。
 
 Kinect 报 `kinect2_bridge` 找不到：
 
