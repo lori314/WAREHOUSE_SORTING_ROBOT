@@ -4,7 +4,7 @@
 
 这是一个基于 ROS Noetic、运行在兼容 WPB Home 移动机械臂平台上的仓库分拣集成项目。项目在现有 ROS/WPB 平台之上实现了 RGB-D 颜色感知、分拣任务编排、现场标定、仿真验收和 Web 监控等功能。
 
-仓库包含项目侧的分拣流水线、Gazebo 验收场景、现场标定工具、真机启动文件和 Web 监控面板。底层机器人驱动、ROS Navigation/AMCL/GMapping，以及 WaterPlus/WPB 抓取链路属于外部平台能力，并非本项目从零实现。
+仓库包含分拣流水线、Gazebo 验收场景、现场标定工具、真机启动文件和 Web 监控面板，运行时直接复用 WPB/ROS 已有的驱动、导航、定位和抓取组件。
 
 ## 真机演示
 
@@ -43,20 +43,20 @@ flowchart LR
     Task --> Dashboard[Web 面板与验收报告]
 ```
 
-仓库保留了两套执行路径，因为仿真与当前真机配置对“靠近/抓取”的职责划分不同：
+仿真和当前真机配置采用了两套略有不同的抓取流程：
 
 - **仿真 / 自定义控制路径：** `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`。项目自身的状态机负责视觉居中、短距离靠近以及后续取放流程。
 - **当前真机路径：** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`。项目主流程锁定目标颜色后，将精细靠近与抓取动作交给已有的 WaterPlus/WPB 抓取链路（`wpb_home_objects_3d` + `wpb_home_grab_action`）；收到 `/wpb_home/grab_result=done` 后，再由分拣主流程根据颜色导航至对应作业区。
 
-因此，`ALIGN` 与 `APPROACH` 仍属于通用/仿真状态机，但在当前真机默认配置中会被跳过。
+当前真机配置中，目标精细靠近由 WPB 抓取链路完成，因此会跳过 `ALIGN` 与 `APPROACH`。
 
-## 项目边界与验证范围
+## 实现与依赖
 
-**本仓库实现：** RGB-D 颜色检测、目标选择与分拣任务编排、状态与指标记录、仿真取放逻辑、现场标定辅助、launch/config 集成、自动验收脚本和 Web 监控面板。
+项目代码包括 RGB-D 颜色检测、目标选择与分拣任务编排、状态与指标记录、仿真取放逻辑、现场标定辅助、launch/config 集成、自动验收脚本和 Web 监控面板。
 
-**集成的外部平台能力：** WPB Home 底层硬件驱动、Kinect/RPLIDAR 驱动、ROS Navigation、AMCL/GMapping、`wpb_home_objects_3d` 和 `wpb_home_grab_action`。
+真机运行还会使用 WPB Home 底层驱动、Kinect/RPLIDAR 驱动、ROS Navigation、AMCL/GMapping、`wpb_home_objects_3d` 和 `wpb_home_grab_action`。
 
-**仓库媒体中已经展示的真机能力：** 物体夹取并运输、移动底盘导航。仓库同时包含多层放置逻辑和 6 次取放的 Gazebo 验收场景，但现有展示材料**不据此声称已经完成真机全自主多层码垛闭环**。
+仓库中的真机演示包括物体夹取运输和移动底盘导航；多层放置逻辑主要在 Gazebo 流程中测试。
 
 ## 仓库结构
 
@@ -118,7 +118,7 @@ rosrun arm_grab_task run_stack_sort_acceptance.py \
   --timeout 900 --settle-seconds 1.5
 ```
 
-默认场景会检查 6 次取放、各颜色完成数量，以及夹爪接触后的 Gazebo 模型抬升判据。这些结果用于验证仿真路径，并不等同于完成 6 次真机抓取。报告保存在 `/tmp/arm_grab_task_reports/`。
+默认 Gazebo 场景会检查 6 次取放、各颜色完成数量，以及夹爪接触后的模型抬升判据。报告保存在 `/tmp/arm_grab_task_reports/`。
 
 ## 真机运行
 
@@ -169,8 +169,7 @@ python3 -m http.server 8000 -d src/arm_grab_task/web
 - 启用真实运动前，清空底盘和机械臂的工作空间。
 - 检查急停、底盘方向、夹爪行程和定位质量。
 - 更换硬件或标定参数后，先从 dry-run 或单元测试开始。
-- Gazebo 专用辅助参数不能用于证明真机抓取成功。
 
 ## 许可说明
 
-本仓库当前没有项目级开源许可证。未获得权利人单独授权时，仓库仅用于学习交流和项目展示。
+仓库目前还没有添加项目级开源许可证。
