@@ -502,7 +502,7 @@ pick_retry_count      当前目标重试次数
 [CONFIG]  参数是否加载了现场 yaml
 [STATE]   状态切换
 [SEARCH]  搜索、颜色选择、未选中原因
-[ALIGN]   视觉对准
+[ALIGN]   视觉对准（仿真/自定义靠近路径；当前默认真机路径通常跳过）
 [PICK]    夹取序列
 [DROP]    放置目标和层数
 [METRICS] 每次循环成功/失败原因
@@ -578,35 +578,29 @@ rostopic echo -n 1 /stack_sort/status
 | `SEARCH` 且有 `[SEARCH] detections present but none selectable` | 检测到了颜色但不能作为目标 | `active_colors`、`stack_count`、颜色名称是否和 `cargo_features.yaml` 一致 |
 | `SEARCH` 停住并打印 `[SEARCH] no selectable target` | 没有可夹目标 | 看 A 点车头是否正对 A 桌、目标是否在画面中、颜色特征和 Kinect RGB/depth topic 是否正常 |
 | `SEARCH` 一直转圈 | 启用了 `search_spin_when_no_target:=true` 或旧代码 | 真机默认应为 `false`；确认代码已更新并重启分拣 |
-| `ALIGN` | 已锁定目标，正在转向对准 | 看 `last_align_error_px` 是否逐渐接近 0 |
-| `APPROACH` | 已对准，正在靠近目标 | 看 `last_depth` 是否逐渐下降到 `pick_stop_depth`；如果 `last_align_error_px` 太大，程序会先停住前进只转向重对准 |
+| `SEARCH` 已锁定目标但未进入 `PICK` | 当前默认真机路径应直接触发 WPB 抓取 | 看 `wpb_direct_pick_after_color_lock`、`use_wpb_grab_action`，以及日志中是否有 `reason=wpb_direct_color_locked` |
 | `PICK` 没抓取或动作不对 | WPB 抓取行为没有拿到 3D 物体，或抓取参数不合适 | 看 `[PICK-WPB]`、`/wpb_home/grab_result`、`/kinect2/qhd/points`；动作偏差再调 `wpb_home.yaml` 的 `grab_*` 参数 |
 | `PICK` 但机械臂没动 | 分拣逻辑已经发夹取 | 看 `/wpb_home/mani_ctrl`、终端 1 机械臂日志、电源和急停 |
 | `DROP` 到点但不放或提前掉 | 放置安全高度、闭合保持值或释放等待不合适 | 看 `[DROP] travel safe pose`、`[DROP] release`，调 `drop_hold_gripper`、`drop_release_clearance`、`drop_safe_lift_height` |
 
-这次遇到的典型问题是：相机识别到了物体，但主流程没有进入视觉 `ALIGN/APPROACH/PICK`，而是反复按 A 区位姿跑。修复后真机应当在锁定目标后走：
+当前默认真机配置采用 **WPB 直接抓取路径**：颜色目标锁定后，主流程应从 `SEARCH` 直接进入 `PICK`，把精细靠近和抓取交给 WaterPlus/WPB 抓取链路。典型日志应包含：
 
 ```text
-SEARCH -> ALIGN -> APPROACH -> PICK
+Target locked
+SEARCH -> PICK reason=wpb_direct_color_locked
+[PICK-WPB] grab object=...
 ```
 
-如果仍然没有这个状态流转，先确认运行的是新代码：
+如果没有直接进入 `PICK`，先确认：
 
 ```bash
 rosparam get /stack_sort_pipeline/gazebo_use_source_pick_targets
+rosparam get /stack_sort_pipeline/wpb_direct_pick_after_color_lock
+rosparam get /stack_sort_pipeline/use_wpb_grab_action
 rostopic echo -n 3 /stack_sort/status
 ```
 
-真机应该看到 `gazebo_use_source_pick_targets: false`，并且 `/stack_sort/status` 里的 `state` 会从 `SEARCH` 进入 `ALIGN`。
-
-如果已经进入 `ALIGN/APPROACH`，但迟迟不 `PICK`：
-
-```bash
-rosparam get /stack_sort_pipeline/pick_stop_depth
-rostopic echo /stack_sort/status
-```
-
-观察 `last_depth`。如果 `last_depth` 一直大于 `pick_stop_depth`，机器人会继续靠近或重新对准，不会夹取。这里的单位必须是米；正常应看到 `0.7`、`0.8`、`1.0` 这一类数。如果看到 `700`、`800`、`1000`，说明 Kinect 深度仍按毫米进入了流程，先确认 `depth_unit_auto_scale:=true` 并重启分拣。深度单位正常后，再检查目标是否在桌面 ROI 中心、深度图是否稳定、颜色特征是否需要重采。
+真机应看到 `gazebo_use_source_pick_targets: false`，并且默认应启用 `wpb_direct_pick_after_color_lock` 与 `use_wpb_grab_action`。只有主动关闭直接抓取、改用项目自身的短距离视觉靠近路径时，才会看到 `ALIGN -> APPROACH -> PICK`；这不是当前真机默认流程。
 
 如果进入 `PICK` 但机械臂没有动作，另开终端看机械臂控制 topic：
 
@@ -723,7 +717,7 @@ rostopic pub /cmd_vel geometry_msgs/Twist \
 2. 先测导航: field_nav_smoke.launch dry_run:=true，然后 sequence:=A,B,C,A
 3. 再开分拣: stack_sort_field.launch
 4. 出问题先看: rostopic echo -n 1 /stack_sort/status
-5. 真机应看到: SEARCH -> ALIGN -> APPROACH -> PICK -> DROP
+5. 当前默认真机应看到: LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH
 ```
 
 现场生成的地图、标定文件和调试记录应保存在机器人本地，不要提交到公开仓库。
