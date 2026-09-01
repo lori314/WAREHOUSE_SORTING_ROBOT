@@ -12,7 +12,7 @@ The repository contains the task pipeline, Gazebo acceptance scenarios, field ca
 
 ![The robot grasps, lifts, and transports a colored box](media/grasping-demo.gif)
 
-The demo shows approach, gripper closure, lift confirmation, and stable retention while the cargo is moved.
+The demo shows the integrated WPB grasp behavior approaching the target, closing the gripper, lifting the box, and retaining it while the mobile base moves.
 
 ### Mobile-base navigation
 
@@ -43,7 +43,12 @@ flowchart LR
     Task --> Dashboard[Web dashboard and reports]
 ```
 
-The main workflow follows `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`, with localization checks and recovery transitions around the motion stages.
+The repository keeps two execution paths because simulation and the current physical robot use different grasp-control boundaries:
+
+- **Simulation / custom-control path:** `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`. The project pipeline performs visual centering and short-range approach before executing the pick-and-place sequence.
+- **Current real-robot path:** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`. After the project pipeline locks a target color, it delegates fine target approach and grasp execution to the existing WaterPlus/WPB grasp stack (`wpb_home_objects_3d` + `wpb_home_grab_action`). The sorting pipeline resumes after `/wpb_home/grab_result=done` and routes the box to the corresponding work zone.
+
+Therefore, `ALIGN` and `APPROACH` remain part of the generic/simulation state machine, but are bypassed by default in the current real-robot configuration.
 
 ## Repository Layout
 
@@ -131,7 +136,7 @@ rosrun warehouse_tuning field_calibration_wizard.py \
 roslaunch arm_grab_task stack_sort_field.launch rviz:=true
 ```
 
-Generated maps, zone poses, camera features, and run reports are local runtime data and are ignored by Git.
+In the default real-robot configuration, the project pipeline is responsible for localization, color-based target selection, task state, and B/C routing, while the existing WPB grasp behavior performs the final object approach and grasp sequence. Generated maps, zone poses, camera features, and run reports are local runtime data and are ignored by Git.
 
 ## Web Dashboard
 
