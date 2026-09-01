@@ -1,0 +1,55 @@
+wpb_pick_unit_test:
+  behaviors_topic: /wpb_home/behaviors
+  objects_topic: /wpb_home/objects_3d
+  grab_action_topic: /wpb_home/grab_action
+  grab_result_topic: /wpb_home/grab_result
+  cmd_vel_topic: /cmd_vel
+  mani_ctrl_topic: /wpb_home/mani_ctrl
+
+  trials: 1
+  manual_step: true
+  dry_run: false
+  stop_on_failure: true
+  wait_for_connections: true
+  stop_detection_after_grab: false
+  stop_runtime_on_exit: true
+
+  detect_warmup_seconds: 0.6
+  object_wait_timeout: 8.0
+  result_timeout: 80.0
+  settle_between_trials: 1.0
+  stop_repeat_seconds: 0.6
+
+  # Candidate filter for /wpb_home/objects_3d. Coordinates are in robot base frame.
+  min_probability: 0.0
+  min_x: 0.25
+  max_x: 1.60
+  min_y: -0.55
+  max_y: 0.55
+  min_z: 0.55
+  max_z: 0.95
+  selection_policy: closest_to_target
+  selection_target_x: 1.05
+  selection_target_y: 0.0
+
+  # Keep these at zero while tuning the real WPB grab parameters first.
+  action_x_offset: 0.0
+  action_y_offset: 0.0
+  action_z_offset: 0.0
+  action_x_override: ""
+  action_y_override: ""
+  action_z_override: ""
+
+  result_done_token: done
+  fatal_result_tokens: [fail, abort, error]
+  expected_result_sequence: [object x, hand up, forward, grab, object up, backward, done]
+
+  stow_arm_before_trial: true
+  stow_lift: 0.35
+  stow_gripper: 0.04
+  stow_seconds: 1.0
+  stow_lift_speed: 0.12
+  stow_gripper_speed: 5.0
+
+  report_output_dir: /tmp/arm_grab_task_reports
+  report_prefix: wpb_pick_unit

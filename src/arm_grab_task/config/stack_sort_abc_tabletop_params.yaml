@@ -1,0 +1,214 @@
+stack_sort_pipeline:
+  scene_profile: abc_tabletop_demo
+  show_debug: false
+  rgb_topic: /kinect2/sd/image_color_rect
+  depth_topic: /kinect2/sd/image_depth_rect
+  depth_unit_auto_scale: true
+  depth_mm_threshold: 20.0
+  depth_scale: 1.0
+  color_image_width: 960.0
+  color_image_height: 540.0
+  camera_center_x: 480.0
+
+  enable_status_publish: true
+  status_topic: /stack_sort/status
+  marker_topic: /stack_sort/markers
+  status_publish_rate: 2.0
+  vision_topic_timeout: 5.0
+  visualization_frame: world
+  vision_enabled_states: [SEARCH, ALIGN, APPROACH, PICK, RECOVER_RETRY]
+  localization_watchdog_enabled: false
+  scan_watchdog_timeout: 5.0
+  amcl_watchdog_timeout: 15.0
+
+  field_dimensions:
+    table_height: 0.75
+    box_size: {x: 0.10, y: 0.10, z: 0.10}
+    pick_lift_clearance: 0.05
+    carry_lift_clearance: 0.18
+    drop_lift_clearance: 0.04
+    stack_lift_margin: 0.025
+    gripper_open_clearance: 0.10
+    gripper_closed_clearance: -0.005
+    source_pick_forward_offset: 0.70
+    carry_forward_offset: 0.64
+    model_tabletop_z_offset: 0.028
+
+  active_colors: [green, red]
+  max_per_color: 3
+  drop_zones:
+    green:
+      yaw: 1.5708
+      forward: 1.10
+    red:
+      yaw: -1.5708
+      forward: 1.10
+
+  min_box_area: 80.0
+  max_box_area: 120000.0
+  square_filter_enabled: true
+  square_min_side_px: 10.0
+  square_max_aspect_ratio: 1.65
+  square_min_fill_ratio: 0.45
+  color_ranges:
+    green:
+      - lower: [35, 70, 70]
+        upper: [90, 255, 255]
+    red:
+      - lower: [0, 80, 80]
+        upper: [10, 255, 255]
+      - lower: [160, 80, 80]
+        upper: [180, 255, 255]
+
+  align_deadband_px: 42.0
+  near_pick_align_deadband_px: 60.0
+  max_near_pick_align_cycles: 0
+  max_align_watchdog_cycles: 150
+  align_force_pick_depth: 1.05
+  align_progress_log_cycles: 30
+  align_kp: 0.0022
+  search_yaw_rate: 0.18
+  approach_realign_error_px: 220.0
+  approach_speed: 0.035
+
+  pick_stop_depth: 0.90
+  wpb_direct_pick_after_color_lock: true
+  wpb_pregrab_distance_guard_enabled: true
+  wpb_pregrab_min_depth: 0.85
+  wpb_pregrab_target_depth: 1.00
+  wpb_pregrab_max_backup: 0.40
+  lost_depth_fallback: 1.20
+  max_target_lost_cycles: 35
+
+  pick_lift_min_clearance: 0.05
+  pick_lift_height: 0.80
+  carry_lift_height: 0.93
+  pick_blind_push_seconds: 0.0
+  pick_blind_push_speed: 0.0
+  pick_insert_distance: 0.095
+  pick_insert_tolerance: 0.006
+  open_gripper: 0.20
+  closed_gripper: 0.095
+  drop_hold_gripper: 0.012
+  drop_open_gripper: 0.20
+  drop_release_clearance: 0.05
+  drop_safe_lift_height: 0.93
+  drop_travel_lift_margin: 0.10
+  drop_open_seconds: 2.0
+  drop_release_confirm_seconds: 2.0
+  reset_arm_on_start: true
+  startup_arm_lift_height: 0.35
+  startup_arm_gripper: 0.04
+  startup_arm_reset_seconds: 1.0
+  vision_arm_stow_enabled: true
+  vision_arm_lift_height: 0.35
+  vision_arm_gripper: 0.04
+  vision_arm_settle_seconds: 0.8
+  source_travel_arm_enabled: false
+  source_travel_lift_height: 0.85
+  source_travel_gripper: 0.04
+  approach_arm_guard_enabled: false
+  arm_open_seconds: 0.8
+  arm_close_seconds: 2.6
+  arm_lift_seconds: 1.8
+  arm_place_seconds: 1.2
+  enable_pick_verification: false
+  verify_cx_tol: 120.0
+  verify_depth_tol: 0.20
+  verify_area_ratio: 0.45
+  max_pick_retries: 2
+  recover_back_distance: 0.10
+
+  tabletop_drop_mode: true
+  tabletop_drop_yaw_scale: 1.0
+  tabletop_drop_settle_seconds: 0.8
+  tabletop_retreat_after_place: 0.28
+  tabletop_use_base_targets: true
+  tabletop_use_dynamic_stack_targets: true
+  tabletop_return_to_pick_pose: true
+  tabletop_return_base_target:
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+  tabletop_stack_anchors:
+    green:
+      x: 0.0
+      y: 1.65
+      yaw: 1.5708
+    red:
+      x: 0.0
+      y: -1.65
+      yaw: -1.5708
+  tabletop_drop_base_targets:
+    green:
+      x: 0.0
+      y: 1.09
+      yaw: 1.5708
+    red:
+      x: 0.0
+      y: -1.09
+      yaw: -1.5708
+  base_drop_lift: 0.82
+  stack_lift_step: 0.125
+
+  gazebo_attach_on_pick: false
+  gazebo_validate_grasp_window: true
+  gazebo_grasp_max_xy_error: 0.30
+  gazebo_grasp_max_z_error: 0.09
+  gazebo_verify_physical_pick: true
+  gazebo_physical_pick_min_lift: 0.035
+  gazebo_physical_pick_settle_seconds: 0.35
+  gazebo_model_by_color:
+    green: [green_box_1, green_box_2, green_box_3]
+    blue: [blue_box_1, blue_box_2, blue_box_3]
+  gazebo_carry_forward_offset: 0.64
+  gazebo_carry_side_offset: 0.0
+  gazebo_carry_z: 0.95
+  gazebo_drop_z: 0.808
+  gazebo_robot_model_name: wpb_home
+  gazebo_use_robot_model_pose: true
+  gazebo_use_absolute_drop_poses: false
+  gazebo_use_source_pick_targets: true
+  gazebo_source_pick_yaw: 0.0
+  gazebo_source_pick_use_current_yaw: false
+  gazebo_source_pick_forward_offset: 0.70
+  gazebo_source_pick_side_offset: 0.0
+  gazebo_stabilize_stack_on_release: false
+  gazebo_stable_stack_base_z: 0.780
+  gazebo_follow_lift_z: true
+  gazebo_lift_z_offset: -0.040
+  gazebo_carry_max_step: 0.018
+  gazebo_stack_step: 0.125
+  gazebo_initial_reset_delay: 2.5
+  gazebo_initial_model_wait_timeout: 8.0
+  gazebo_initial_model_poses:
+    green_box_1: {x: 0.78, y: 0.18, z: 0.808, yaw: 0.0}
+    green_box_2: {x: 0.92, y: 0.32, z: 0.808, yaw: 0.0}
+    green_box_3: {x: 1.06, y: 0.46, z: 0.808, yaw: 0.0}
+    blue_box_1: {x: 0.78, y: -0.18, z: 0.808, yaw: 0.0}
+    blue_box_2: {x: 0.92, y: -0.32, z: 0.808, yaw: 0.0}
+    blue_box_3: {x: 1.06, y: -0.46, z: 0.808, yaw: 0.0}
+
+  use_odom_control: true
+  odom_dist_tolerance: 0.020
+  odom_yaw_tolerance: 0.010
+  odom_min_lin_speed: 0.015
+  odom_max_lin_speed: 0.16
+  odom_min_yaw_speed: 0.075
+  odom_max_yaw_speed: 0.75
+  odom_move_timeout: 26.0
+  odom_rotate_timeout: 24.0
+  motion_pose_recovery_timeout: 3.0
+  motion_pose_recovery_poll_hz: 10.0
+  pose_drive_refine_attempts: 2
+  pose_drive_pick_dist_tolerance: 0.020
+  pose_drive_pick_yaw_tolerance: 0.025
+  pose_drive_pick_attempts: 5
+  pose_drive_drop_dist_tolerance: 0.070
+  pose_drive_drop_yaw_tolerance: 0.170
+
+  enable_drop_anchor_correction: false
+  enable_visual_drop_refine: false
+  enable_report_export: true
+  report_output_dir: /tmp/arm_grab_task_reports
+  report_prefix: stack_sort_abc_tabletop

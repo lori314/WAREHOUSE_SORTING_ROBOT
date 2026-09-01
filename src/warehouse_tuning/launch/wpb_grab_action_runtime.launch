@@ -1,0 +1,133 @@
+<launch>
+  <arg name="point_cloud_topic" default="/kinect2/qhd/points"/>
+  <arg name="start_point_cloud" default="true"/>
+  <arg name="queue_size" default="2"/>
+  <arg name="cube_filter_enabled" default="true"/>
+  <arg name="cube_min_x" default="0.04"/>
+  <arg name="cube_max_x" default="0.18"/>
+  <arg name="cube_min_y" default="0.04"/>
+  <arg name="cube_max_y" default="0.18"/>
+  <arg name="cube_min_z" default="0.035"/>
+  <arg name="cube_max_z" default="0.18"/>
+  <arg name="cube_max_xy_ratio" default="1.8"/>
+  <arg name="table_height_min" default="0.70"/>
+  <arg name="table_height_max" default="0.80"/>
+  <arg name="grasp_x_ratio" default="0.50"/>
+  <arg name="grasp_y_ratio" default="0.50"/>
+  <arg name="grasp_z_ratio" default="0.00"/>
+  <arg name="grasp_x_offset" default="0.00"/>
+  <arg name="grasp_y_offset" default="0.00"/>
+  <arg name="grasp_z_offset" default="0.00"/>
+  <arg name="grab_y_offset" default="0.00"/>
+  <arg name="grab_y_side_offset_enabled" default="true"/>
+  <arg name="grab_y_left_offset" default="-0.05"/>
+  <arg name="grab_y_center_offset" default="0.00"/>
+  <arg name="grab_y_right_offset" default="-0.025"/>
+  <arg name="grab_y_side_deadband" default="0.015"/>
+  <arg name="grab_y_axis_left_positive" default="true"/>
+  <arg name="grab_y_color_offset_enabled" default="true"/>
+  <arg name="grab_y_default_color" default="green"/>
+  <arg name="grab_y_green_offset_delta" default="0.00"/>
+  <arg name="grab_y_red_offset_delta" default="0.04"/>
+  <arg name="target_color_topic" default="/wpb_home/grab_target_color"/>
+  <arg name="grab_lift_offset" default="0.05"/>
+  <arg name="grab_forward_offset" default="0.0"/>
+  <arg name="grab_gripper_value" default="0.012"/>
+  <arg name="grab_target_x" default="1.05"/>
+  <arg name="grab_target_y" default="0.0"/>
+  <arg name="grab_close_target_x" default="0.65"/>
+  <arg name="grab_close_target_y" default="0.0"/>
+  <arg name="fine_align_enabled" default="true"/>
+  <arg name="fine_align_timeout" default="6.0"/>
+  <arg name="fine_align_fresh_timeout" default="1.5"/>
+  <arg name="fine_align_x_tolerance" default="0.025"/>
+  <arg name="fine_align_y_tolerance" default="0.015"/>
+  <arg name="fine_align_kp_x" default="0.45"/>
+  <arg name="fine_align_kp_y" default="0.80"/>
+  <arg name="fine_align_max_vel" default="0.08"/>
+  <arg name="wait_for_lift_before_forward" default="true"/>
+  <arg name="lift_ready_tolerance" default="0.02"/>
+  <arg name="lift_wait_timeout" default="35.0"/>
+  <arg name="lift_min_wait_seconds" default="0.5"/>
+  <arg name="lift_command_to_joint_offset" default="0.35"/>
+  <arg name="joint_states_topic" default="/joint_states"/>
+
+  <node if="$(arg start_point_cloud)"
+        pkg="nodelet"
+        type="nodelet"
+        name="kinect2_points_xyzrgb_qhd_for_grab"
+        args="standalone depth_image_proc/point_cloud_xyzrgb"
+        output="screen">
+    <remap from="rgb/camera_info" to="/kinect2/qhd/camera_info"/>
+    <remap from="rgb/image_rect_color" to="/kinect2/qhd/image_color_rect"/>
+    <remap from="depth_registered/image_rect" to="/kinect2/qhd/image_depth_rect"/>
+    <remap from="depth_registered/points" to="$(arg point_cloud_topic)"/>
+    <param name="queue_size" type="int" value="$(arg queue_size)"/>
+  </node>
+
+  <node pkg="wpb_home_behaviors"
+        type="wpb_home_objects_3d"
+        name="wpb_home_objects_3d"
+        output="screen">
+    <rosparam file="$(find wpb_home_bringup)/config/wpb_home.yaml" command="load"/>
+    <param name="topic" value="$(arg point_cloud_topic)"/>
+    <param name="start" type="bool" value="false"/>
+    <param name="cube_filter_enabled" type="bool" value="$(arg cube_filter_enabled)"/>
+    <param name="cube_min_x" type="double" value="$(arg cube_min_x)"/>
+    <param name="cube_max_x" type="double" value="$(arg cube_max_x)"/>
+    <param name="cube_min_y" type="double" value="$(arg cube_min_y)"/>
+    <param name="cube_max_y" type="double" value="$(arg cube_max_y)"/>
+    <param name="cube_min_z" type="double" value="$(arg cube_min_z)"/>
+    <param name="cube_max_z" type="double" value="$(arg cube_max_z)"/>
+    <param name="cube_max_xy_ratio" type="double" value="$(arg cube_max_xy_ratio)"/>
+    <param name="table_height_min" type="double" value="$(arg table_height_min)"/>
+    <param name="table_height_max" type="double" value="$(arg table_height_max)"/>
+    <param name="grasp_x_ratio" type="double" value="$(arg grasp_x_ratio)"/>
+    <param name="grasp_y_ratio" type="double" value="$(arg grasp_y_ratio)"/>
+    <param name="grasp_z_ratio" type="double" value="$(arg grasp_z_ratio)"/>
+    <param name="grasp_x_offset" type="double" value="$(arg grasp_x_offset)"/>
+    <param name="grasp_y_offset" type="double" value="$(arg grasp_y_offset)"/>
+    <param name="grasp_z_offset" type="double" value="$(arg grasp_z_offset)"/>
+  </node>
+
+  <node pkg="wpb_home_behaviors"
+        type="wpb_home_grab_action"
+        name="wpb_home_grab_action"
+        output="screen">
+    <rosparam file="$(find wpb_home_bringup)/config/wpb_home.yaml" command="load"/>
+    <param name="grab/grab_y_offset" type="double" value="$(arg grab_y_offset)"/>
+    <param name="grab/grab_y_side_offset_enabled" type="bool" value="$(arg grab_y_side_offset_enabled)"/>
+    <param name="grab/grab_y_left_offset" type="double" value="$(arg grab_y_left_offset)"/>
+    <param name="grab/grab_y_center_offset" type="double" value="$(arg grab_y_center_offset)"/>
+    <param name="grab/grab_y_right_offset" type="double" value="$(arg grab_y_right_offset)"/>
+    <param name="grab/grab_y_side_deadband" type="double" value="$(arg grab_y_side_deadband)"/>
+    <param name="grab/grab_y_axis_left_positive" type="bool" value="$(arg grab_y_axis_left_positive)"/>
+    <param name="grab/grab_y_color_offset_enabled" type="bool" value="$(arg grab_y_color_offset_enabled)"/>
+    <param name="grab/grab_y_default_color" type="string" value="$(arg grab_y_default_color)"/>
+    <param name="grab/grab_y_green_offset_delta" type="double" value="$(arg grab_y_green_offset_delta)"/>
+    <param name="grab/grab_y_red_offset_delta" type="double" value="$(arg grab_y_red_offset_delta)"/>
+    <param name="grab/target_color_topic" type="string" value="$(arg target_color_topic)"/>
+    <param name="grab/grab_lift_offset" type="double" value="$(arg grab_lift_offset)"/>
+    <param name="grab/grab_forward_offset" type="double" value="$(arg grab_forward_offset)"/>
+    <param name="grab/grab_gripper_value" type="double" value="$(arg grab_gripper_value)"/>
+    <param name="grab/grab_target_x" type="double" value="$(arg grab_target_x)"/>
+    <param name="grab/grab_target_y" type="double" value="$(arg grab_target_y)"/>
+    <param name="grab/grab_close_target_x" type="double" value="$(arg grab_close_target_x)"/>
+    <param name="grab/grab_close_target_y" type="double" value="$(arg grab_close_target_y)"/>
+    <param name="grab/fine_align_enabled" type="bool" value="$(arg fine_align_enabled)"/>
+    <param name="grab/fine_align_timeout" type="double" value="$(arg fine_align_timeout)"/>
+    <param name="grab/fine_align_fresh_timeout" type="double" value="$(arg fine_align_fresh_timeout)"/>
+    <param name="grab/fine_align_x_tolerance" type="double" value="$(arg fine_align_x_tolerance)"/>
+    <param name="grab/fine_align_y_tolerance" type="double" value="$(arg fine_align_y_tolerance)"/>
+    <param name="grab/fine_align_kp_x" type="double" value="$(arg fine_align_kp_x)"/>
+    <param name="grab/fine_align_kp_y" type="double" value="$(arg fine_align_kp_y)"/>
+    <param name="grab/fine_align_max_vel" type="double" value="$(arg fine_align_max_vel)"/>
+    <param name="grab/objects_topic" type="string" value="/wpb_home/objects_3d"/>
+    <param name="grab/wait_for_lift_before_forward" type="bool" value="$(arg wait_for_lift_before_forward)"/>
+    <param name="grab/lift_ready_tolerance" type="double" value="$(arg lift_ready_tolerance)"/>
+    <param name="grab/lift_wait_timeout" type="double" value="$(arg lift_wait_timeout)"/>
+    <param name="grab/lift_min_wait_seconds" type="double" value="$(arg lift_min_wait_seconds)"/>
+    <param name="grab/lift_command_to_joint_offset" type="double" value="$(arg lift_command_to_joint_offset)"/>
+    <param name="grab/joint_states_topic" type="string" value="$(arg joint_states_topic)"/>
+  </node>
+</launch>

@@ -1,0 +1,50 @@
+warehouse_tuning:
+  mapping:
+    map_topic: /map
+    map_prefix: /tmp/warehouse_lab_map
+    wait_timeout: 10.0
+
+  abc_zone_capture:
+    output_file: /tmp/warehouse_abc_zones.yaml
+    odom_topic: /odom
+    pose_source: tf
+    map_frame: map
+    base_frame: base_footprint
+    service_name: /warehouse_tuning/capture_abc_zone
+    status_topic: /warehouse_tuning/abc_zone_status
+    wait_timeout: 5.0
+    zone_name: A
+    zone_role: source
+    color: green
+    stack_anchor_forward_offset: 0.56
+    stack_anchor_side_offset: 0.0
+    table_height: 0.0
+
+  cargo_feature_capture:
+    rgb_topic: /kinect2/sd/image_color_rect
+    depth_topic: /kinect2/sd/image_depth_rect
+    camera_info_topic: /kinect2/sd/camera_info
+    output_file: /tmp/warehouse_cargo_features.yaml
+    roi: {x: 0.30, y: 0.42, width: 0.35, height: 0.36}
+    hsv_padding: {h: 8, s: 35, v: 35}
+    min_area: 500
+    use_blob_mask: true
+    require_blob_mask: true
+    min_saturation: 45
+    min_value: 35
+    require_fresh_image: true
+    capture_settle_seconds: 0.2
+    save_debug_images: false
+    debug_output_dir: /tmp/warehouse_tuning_debug
+    allow_simulated_fallback: false
+    hue_ranges_by_type:
+      red:
+        - {lower: 0, upper: 10}
+        - {lower: 160, upper: 179}
+      green:
+        - {lower: 35, upper: 90}
+      blue:
+        - {lower: 95, upper: 140}
+    service_name: /warehouse_tuning/capture_cargo_features
+    status_topic: /warehouse_tuning/cargo_feature_status
+    default_size: {x: 0.12, y: 0.12, z: 0.10}

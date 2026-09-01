@@ -1,0 +1,53 @@
+<launch>
+  <arg name="start_core" default="true"/>
+  <arg name="start_lidar" default="true"/>
+  <arg name="start_kinect" default="true"/>
+  <arg name="start_joy" default="true"/>
+  <!-- Override both ports with the stable /dev/serial/by-id paths for the target robot. -->
+  <arg name="rplidar_port" default="/dev/ttyUSB1"/>
+  <arg name="core_port" default="/dev/ttyUSB0"/>
+  <arg name="rplidar_baudrate" default="115200"/>
+  <arg name="scan_topic" default="/scan"/>
+  <arg name="kinect_fps_limit" default="5.0"/>
+  <arg name="kinect_respawn" default="false"/>
+  <arg name="joy_dev" default="/dev/input/js0"/>
+
+  <include if="$(arg start_core)" file="$(find wpb_home_bringup)/launch/normal.launch">
+    <arg name="core_serial_port" value="$(arg core_port)"/>
+  </include>
+
+  <group if="$(arg start_lidar)">
+    <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
+      <param name="serial_port" type="string" value="$(arg rplidar_port)"/>
+      <param name="serial_baudrate" type="int" value="$(arg rplidar_baudrate)"/>
+      <param name="frame_id" type="string" value="laser"/>
+      <param name="inverted" type="bool" value="false"/>
+      <param name="angle_compensate" type="bool" value="true"/>
+      <remap from="scan" to="/scan_raw"/>
+    </node>
+
+    <node pkg="wpb_home_bringup" type="wpb_home_lidar_filter"
+          name="wpb_home_lidar_filter" output="screen">
+      <param name="pub_topic" value="$(arg scan_topic)"/>
+    </node>
+  </group>
+
+  <include if="$(arg start_kinect)" file="$(find warehouse_sorting)/launch/minimal_kinect2.launch">
+    <arg name="fps_limit" value="$(arg kinect_fps_limit)"/>
+    <arg name="respawn" value="$(arg kinect_respawn)"/>
+  </include>
+
+  <group if="$(arg start_joy)">
+    <node respawn="true" pkg="joy" type="joy_node" name="wpb_home_joy" output="screen">
+      <param name="dev" type="string" value="$(arg joy_dev)"/>
+      <param name="deadzone" value="0.12"/>
+    </node>
+    <param name="axis_linear" value="1" type="int"/>
+    <param name="axis_strafe" value="0" type="int"/>
+    <param name="axis_angular" value="3" type="int"/>
+    <param name="scale_linear" value="0.2" type="double"/>
+    <param name="scale_strafe" value="0.2" type="double"/>
+    <param name="scale_angular" value="0.5" type="double"/>
+    <node pkg="wpb_home_bringup" type="wpb_home_js_vel" name="teleop" output="screen"/>
+  </group>
+</launch>

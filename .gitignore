@@ -1,0 +1,30 @@
+# catkin / ROS build outputs
+/build/
+/devel/
+/install/
+/log/
+/.catkin_workspace
+
+# Runtime-generated calibration and reports
+/data/
+/maps/
+/reports/
+*.bag
+*.bag.active
+*.pgm
+
+# Python / editor / OS files
+__pycache__/
+*.py[cod]
+*.swp
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+*.local.yaml
+*.private.yaml

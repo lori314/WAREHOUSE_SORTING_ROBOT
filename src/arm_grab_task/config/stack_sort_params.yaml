@@ -1,0 +1,54 @@
+stack_sort_pipeline:
+  scene_profile: safe_demo
+  show_debug: true
+
+  min_box_area: 140.0
+  max_box_area: 450000.0
+
+  align_deadband_px: 30.0
+  align_kp: 0.0032
+  search_yaw_rate: 0.35
+  approach_speed: 0.11
+
+  pick_stop_depth: 1.05
+  lost_depth_fallback: 1.35
+  max_target_lost_cycles: 8
+
+  pick_blind_push_seconds: 2.7
+  max_pick_retries: 2
+  recover_back_distance: 0.20
+
+  base_drop_lift: 0.05
+  stack_lift_step: 0.055
+  max_per_color: 2
+
+  rotate_speed: 0.40
+
+  use_odom_control: true
+  odom_topic: /odom
+  odom_dist_tolerance: 0.03
+  odom_yaw_tolerance: 0.05
+  odom_ctrl_kp_lin: 0.90
+  odom_ctrl_kp_yaw: 1.20
+  odom_min_lin_speed: 0.06
+  odom_max_lin_speed: 0.18
+  odom_min_yaw_speed: 0.16
+  odom_max_yaw_speed: 0.60
+  odom_move_timeout: 12.0
+  odom_rotate_timeout: 8.0
+
+  enable_drop_anchor_correction: true
+  drop_anchor_tol: 0.04
+  drop_anchor_max_step: 0.20
+
+  enable_visual_drop_refine: true
+  visual_refine_cycles: 10
+  visual_refine_deadband_px: 24.0
+  visual_refine_depth_target: 0.95
+  visual_refine_depth_tol: 0.10
+  visual_refine_yaw_gain: 0.0028
+  visual_refine_lin_gain: 0.22
+
+  enable_report_export: true
+  report_output_dir: /tmp/arm_grab_task_reports
+  report_prefix: stack_sort

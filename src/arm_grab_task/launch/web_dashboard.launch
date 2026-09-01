@@ -1,0 +1,119 @@
+<launch>
+  <!-- ═══════════════════════════════════════════════
+   web_dashboard.launch
+   一条命令启动全部：硬件底层 + 分拣 pipeline + Web 仪表盘
+
+   真机用法:
+     roslaunch arm_grab_task web_dashboard.launch \
+       map_file:=$HOME/maps/lab.yaml \
+       use_field_override:=true field_override:=$HOME/maps/abc_zones.yaml \
+       use_feature_override:=true feature_override:=$HOME/maps/cargo_features.yaml
+
+   仿真用法 (跳过硬件层):
+     roslaunch arm_grab_task web_dashboard.launch start_robot_base:=false
+   ═══════════════════════════════════════════════ -->
+
+  <!-- ══ 机器人硬件层参数 ══ -->
+  <arg name="start_robot_base"  default="true"/>
+  <arg name="start_core"        default="true"/>
+  <arg name="start_lidar"       default="true"/>
+  <arg name="start_kinect"      default="true"/>
+  <arg name="start_joy"         default="true"/>
+  <arg name="kinect_fps_limit"  default="5.0"/>
+
+  <!-- ══ Pipeline 参数 (透传给 stack_sort_field.launch) ══ -->
+  <arg name="base_params"           default="$(find arm_grab_task)/config/stack_sort_abc_tabletop_params.yaml"/>
+  <arg name="use_field_override"    default="false"/>
+  <arg name="field_override"        default="$(env HOME)/maps/abc_zones.yaml"/>
+  <arg name="use_feature_override"  default="false"/>
+  <arg name="feature_override"      default="$(env HOME)/maps/cargo_features.yaml"/>
+  <arg name="map_file"              default="$(env HOME)/maps/lab.yaml"/>
+  <arg name="start_localization"    default="true"/>
+  <arg name="rviz"                  default="false"/>
+  <arg name="show_debug"            default="false"/>
+  <arg name="confirm_before_start"  default="true"/>
+  <arg name="set_initial_pose_from_zone" default="false"/>
+  <arg name="initial_pose_zone" default="A"/>
+  <arg name="require_initial_pose_before_start" default="true"/>
+  <arg name="wpb_grab_y_offset" default="0.00"/>
+  <arg name="wpb_grab_y_side_offset_enabled" default="true"/>
+  <arg name="wpb_grab_y_left_offset" default="-0.05"/>
+  <arg name="wpb_grab_y_center_offset" default="0.00"/>
+  <arg name="wpb_grab_y_right_offset" default="-0.025"/>
+  <arg name="wpb_grab_y_side_deadband" default="0.015"/>
+  <arg name="wpb_grab_y_axis_left_positive" default="true"/>
+  <arg name="wpb_grab_y_color_offset_enabled" default="true"/>
+  <arg name="wpb_grab_y_default_color" default="green"/>
+  <arg name="wpb_grab_y_green_offset_delta" default="0.00"/>
+  <arg name="wpb_grab_y_red_offset_delta" default="0.04"/>
+  <arg name="wpb_grab_target_color_topic" default="/wpb_home/grab_target_color"/>
+
+  <!-- ══ Web 桥接层参数 ══ -->
+  <arg name="rosbridge_port"        default="9090"/>
+  <arg name="video_server_port"     default="8080"/>
+  <arg name="web_port"              default="8000"/>
+  <arg name="open_browser"          default="true"/>
+
+
+  <!-- ── 1. 真机硬件底层 (底盘 + 雷达 + Kinect + 手柄) ── -->
+  <include if="$(arg start_robot_base)"
+           file="$(find warehouse_tuning)/launch/field_robot_base.launch">
+    <arg name="start_core"        value="$(arg start_core)"/>
+    <arg name="start_lidar"       value="$(arg start_lidar)"/>
+    <arg name="start_kinect"      value="$(arg start_kinect)"/>
+    <arg name="start_joy"         value="$(arg start_joy)"/>
+    <arg name="kinect_fps_limit"  value="$(arg kinect_fps_limit)"/>
+  </include>
+
+  <!-- ── 2. 分拣 pipeline + 定位 ── -->
+  <include file="$(find arm_grab_task)/launch/stack_sort_field.launch">
+    <arg name="base_params"          value="$(arg base_params)"/>
+    <arg name="use_field_override"   value="$(arg use_field_override)"/>
+    <arg name="field_override"       value="$(arg field_override)"/>
+    <arg name="use_feature_override" value="$(arg use_feature_override)"/>
+    <arg name="feature_override"     value="$(arg feature_override)"/>
+    <arg name="map_file"             value="$(arg map_file)"/>
+    <arg name="start_localization"   value="$(arg start_localization)"/>
+    <arg name="rviz"                 value="$(arg rviz)"/>
+    <arg name="show_debug"           value="$(arg show_debug)"/>
+    <arg name="confirm_before_start" value="$(arg confirm_before_start)"/>
+    <arg name="set_initial_pose_from_zone" value="$(arg set_initial_pose_from_zone)"/>
+    <arg name="initial_pose_zone" value="$(arg initial_pose_zone)"/>
+    <arg name="require_initial_pose_before_start" value="$(arg require_initial_pose_before_start)"/>
+    <arg name="wpb_grab_y_offset" value="$(arg wpb_grab_y_offset)"/>
+    <arg name="wpb_grab_y_side_offset_enabled" value="$(arg wpb_grab_y_side_offset_enabled)"/>
+    <arg name="wpb_grab_y_left_offset" value="$(arg wpb_grab_y_left_offset)"/>
+    <arg name="wpb_grab_y_center_offset" value="$(arg wpb_grab_y_center_offset)"/>
+    <arg name="wpb_grab_y_right_offset" value="$(arg wpb_grab_y_right_offset)"/>
+    <arg name="wpb_grab_y_side_deadband" value="$(arg wpb_grab_y_side_deadband)"/>
+    <arg name="wpb_grab_y_axis_left_positive" value="$(arg wpb_grab_y_axis_left_positive)"/>
+    <arg name="wpb_grab_y_color_offset_enabled" value="$(arg wpb_grab_y_color_offset_enabled)"/>
+    <arg name="wpb_grab_y_default_color" value="$(arg wpb_grab_y_default_color)"/>
+    <arg name="wpb_grab_y_green_offset_delta" value="$(arg wpb_grab_y_green_offset_delta)"/>
+    <arg name="wpb_grab_y_red_offset_delta" value="$(arg wpb_grab_y_red_offset_delta)"/>
+    <arg name="wpb_grab_target_color_topic" value="$(arg wpb_grab_target_color_topic)"/>
+  </include>
+
+  <!-- ── 3. rosbridge WebSocket 服务器 (:9090) ── -->
+  <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket"
+        output="screen">
+    <param name="port"    value="$(arg rosbridge_port)"/>
+    <param name="address" value="0.0.0.0"/>
+  </node>
+
+  <!-- ── 4. MJPEG 视频流服务器 (:8080) ── -->
+  <node name="web_video_server" pkg="web_video_server" type="web_video_server"
+        output="screen">
+    <param name="port"    value="$(arg video_server_port)"/>
+    <param name="address" value="0.0.0.0"/>
+  </node>
+
+  <!-- ── 5. 静态文件服务器 (:8000) ── -->
+  <node name="web_file_server" pkg="arm_grab_task" type="serve_web.sh"
+        output="screen" args="$(arg web_port)"/>
+
+  <!-- ── 6. 自动打开浏览器 (工控机本地) ── -->
+  <node if="$(arg open_browser)" name="open_dashboard_browser"
+        pkg="arm_grab_task" type="open_dashboard.sh" output="screen"
+        args="$(arg web_port)"/>
+</launch>

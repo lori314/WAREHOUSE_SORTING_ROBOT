@@ -1,0 +1,117 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 160
+      Enabled: true
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Plane: XY
+      Plane Cell Count: 40
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/Map
+      Enabled: true
+      Name: Map
+      Topic: /map
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Update Interval: 0
+      Value: true
+    - Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Enabled: true
+      Name: Scan
+      Size (m): 0.03
+      Style: Points
+      Topic: /scan
+      Value: true
+    - Class: rviz/PoseWithCovariance
+      Alpha: 0.35
+      Color: 30; 144; 255
+      Enabled: true
+      Name: AMCL Pose
+      Topic: /amcl_pose
+      Value: true
+    - Class: rviz/Path
+      Alpha: 0.9
+      Buffer Length: 1
+      Color: 255; 190; 20
+      Enabled: true
+      Line Style: Lines
+      Line Width: 0.06
+      Name: Planned ABC Path
+      Pose Color: 255; 190; 20
+      Pose Style: None
+      Topic: /field_nav_smoke/planned_path
+      Value: true
+    - Class: rviz/Path
+      Alpha: 1
+      Buffer Length: 1
+      Color: 20; 180; 255
+      Enabled: true
+      Line Style: Lines
+      Line Width: 0.05
+      Name: Actual Robot Path
+      Pose Color: 20; 180; 255
+      Pose Style: None
+      Topic: /field_nav_smoke/actual_path
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /field_nav_smoke/markers
+      Name: ABC Markers
+      Namespaces:
+        abc_heading: true
+        abc_labels: true
+        abc_zones: true
+        planned_route: true
+      Queue Size: 100
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 36; 36; 36
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/SetInitialPose
+      Topic: /initialpose
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+  Value: true
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Name: TopDownOrtho
+      Scale: 18
+      Target Frame: map
+    Saved: ~
+Window Geometry:
+  Height: 900
+  Width: 1200
+  X: 80
+  Y: 40

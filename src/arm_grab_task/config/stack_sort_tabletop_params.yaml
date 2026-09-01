@@ -1,0 +1,44 @@
+stack_sort_pipeline:
+  scene_profile: tabletop_demo
+  show_debug: true
+
+  min_box_area: 80.0
+  max_box_area: 450000.0
+
+  align_deadband_px: 36.0
+  align_kp: 0.0026
+  search_yaw_rate: 0.22
+  approach_speed: 0.06
+
+  pick_stop_depth: 0.82
+  lost_depth_fallback: 1.15
+  max_target_lost_cycles: 30
+
+  pick_lift_height: 0.82
+  carry_lift_height: 0.94
+  pick_blind_push_seconds: 2.4
+  pick_blind_push_speed: 0.10
+  open_gripper: 0.16
+  closed_gripper: 0.03
+  enable_pick_verification: false
+  max_pick_retries: 1
+  recover_back_distance: 0.12
+
+  tabletop_drop_mode: true
+  tabletop_drop_yaw_scale: 0.55
+  tabletop_drop_settle_seconds: 0.8
+  base_drop_lift: 0.82
+  stack_lift_step: 0.12
+  max_per_color: 1
+
+  use_odom_control: true
+  odom_dist_tolerance: 0.03
+  odom_yaw_tolerance: 0.05
+  odom_move_timeout: 10.0
+  odom_rotate_timeout: 8.0
+
+  enable_drop_anchor_correction: false
+  enable_visual_drop_refine: false
+  enable_report_export: true
+  report_output_dir: /tmp/arm_grab_task_reports
+  report_prefix: stack_sort_tabletop

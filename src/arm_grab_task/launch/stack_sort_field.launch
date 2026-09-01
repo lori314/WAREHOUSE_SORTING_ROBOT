@@ -1,0 +1,144 @@
+<launch>
+  <arg name="base_params" default="$(find arm_grab_task)/config/stack_sort_abc_tabletop_params.yaml"/>
+  <arg name="use_field_override" default="false"/>
+  <arg name="field_override" default="$(env HOME)/maps/abc_zones.yaml"/>
+  <arg name="use_feature_override" default="false"/>
+  <arg name="feature_override" default="$(env HOME)/maps/cargo_features.yaml"/>
+  <arg name="start_localization" default="true"/>
+  <arg name="map_file" default="$(env HOME)/maps/lab.yaml"/>
+  <arg name="map_topic" default="/map"/>
+  <arg name="scan_topic" default="/scan"/>
+  <arg name="odom_topic" default="/odom"/>
+  <arg name="amcl_topic" default="/amcl_pose"/>
+  <arg name="map_frame" default="map"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="wait_for_localization_inputs" default="true"/>
+  <arg name="startup_timeout" default="15.0"/>
+  <arg name="set_initial_pose_from_zone" default="false"/>
+  <arg name="initial_pose_zone" default="A"/>
+  <arg name="require_initial_pose_before_start" default="true"/>
+  <arg name="initial_pose_settle_time" default="1.0"/>
+  <arg name="initial_pose_request_nomotion_update" default="true"/>
+  <arg name="confirm_before_start" default="true"/>
+  <arg name="search_spin_when_no_target" default="false"/>
+  <arg name="start_wpb_grab_runtime" default="true"/>
+  <arg name="use_wpb_grab_action" default="true"/>
+  <arg name="wpb_grab_point_cloud_topic" default="/kinect2/qhd/points"/>
+  <arg name="wpb_grab_start_point_cloud" default="true"/>
+  <arg name="wpb_grab_y_offset" default="0.00"/>
+  <arg name="wpb_grab_y_side_offset_enabled" default="true"/>
+  <arg name="wpb_grab_y_left_offset" default="-0.05"/>
+  <arg name="wpb_grab_y_center_offset" default="0.00"/>
+  <arg name="wpb_grab_y_right_offset" default="-0.025"/>
+  <arg name="wpb_grab_y_side_deadband" default="0.015"/>
+  <arg name="wpb_grab_y_axis_left_positive" default="true"/>
+  <arg name="wpb_grab_y_color_offset_enabled" default="true"/>
+  <arg name="wpb_grab_y_default_color" default="green"/>
+  <arg name="wpb_grab_y_green_offset_delta" default="0.00"/>
+  <arg name="wpb_grab_y_red_offset_delta" default="0.04"/>
+  <arg name="wpb_grab_target_color_topic" default="/wpb_home/grab_target_color"/>
+  <arg name="wpb_grab_object_wait_timeout" default="8.0"/>
+  <arg name="wpb_grab_result_timeout" default="75.0"/>
+  <arg name="start_localization_estop" default="true"/>
+  <arg name="localization_estop_topic" default="/warehouse_tuning/emergency_stop"/>
+  <arg name="localization_estop_grace" default="8.0"/>
+  <arg name="show_debug" default="false"/>
+  <arg name="rviz" default="true"/>
+
+  <include if="$(arg start_localization)" file="$(find warehouse_tuning)/launch/field_localization.launch">
+    <arg name="map_file" value="$(arg map_file)"/>
+    <arg name="scan_topic" value="$(arg scan_topic)"/>
+    <arg name="map_frame" value="$(arg map_frame)"/>
+    <arg name="odom_frame" value="$(arg odom_frame)"/>
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="rviz" value="false"/>
+  </include>
+
+  <include if="$(arg start_wpb_grab_runtime)" file="$(find warehouse_tuning)/launch/wpb_grab_action_runtime.launch">
+    <arg name="point_cloud_topic" value="$(arg wpb_grab_point_cloud_topic)"/>
+    <arg name="start_point_cloud" value="$(arg wpb_grab_start_point_cloud)"/>
+    <arg name="grab_y_offset" value="$(arg wpb_grab_y_offset)"/>
+    <arg name="grab_y_side_offset_enabled" value="$(arg wpb_grab_y_side_offset_enabled)"/>
+    <arg name="grab_y_left_offset" value="$(arg wpb_grab_y_left_offset)"/>
+    <arg name="grab_y_center_offset" value="$(arg wpb_grab_y_center_offset)"/>
+    <arg name="grab_y_right_offset" value="$(arg wpb_grab_y_right_offset)"/>
+    <arg name="grab_y_side_deadband" value="$(arg wpb_grab_y_side_deadband)"/>
+    <arg name="grab_y_axis_left_positive" value="$(arg wpb_grab_y_axis_left_positive)"/>
+    <arg name="grab_y_color_offset_enabled" value="$(arg wpb_grab_y_color_offset_enabled)"/>
+    <arg name="grab_y_default_color" value="$(arg wpb_grab_y_default_color)"/>
+    <arg name="grab_y_green_offset_delta" value="$(arg wpb_grab_y_green_offset_delta)"/>
+    <arg name="grab_y_red_offset_delta" value="$(arg wpb_grab_y_red_offset_delta)"/>
+    <arg name="target_color_topic" value="$(arg wpb_grab_target_color_topic)"/>
+  </include>
+
+  <node if="$(arg set_initial_pose_from_zone)"
+        pkg="warehouse_tuning"
+        type="zone_initial_pose_setter.py"
+        name="zone_initial_pose_setter"
+        output="screen">
+    <param name="zone_file" value="$(arg field_override)"/>
+    <param name="zone_name" value="$(arg initial_pose_zone)"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
+  </node>
+
+  <node if="$(arg start_localization_estop)"
+        pkg="warehouse_tuning"
+        type="localization_emergency_stop.py"
+        name="localization_emergency_stop"
+        output="screen">
+    <param name="cmd_vel_topic" value="/cmd_vel"/>
+    <param name="behaviors_topic" value="/wpb_home/behaviors"/>
+    <param name="emergency_topic" value="$(arg localization_estop_topic)"/>
+    <param name="amcl_topic" value="$(arg amcl_topic)"/>
+    <param name="scan_topic" value="$(arg scan_topic)"/>
+    <rosparam param="monitored_nodes">[/amcl]</rosparam>
+    <param name="check_amcl_topic" value="false"/>
+    <param name="check_scan_topic" value="false"/>
+    <param name="startup_grace_seconds" value="$(arg localization_estop_grace)"/>
+  </node>
+
+  <rosparam file="$(arg base_params)" command="load"/>
+  <rosparam if="$(arg use_field_override)" file="$(arg field_override)" command="load"/>
+  <rosparam if="$(arg use_feature_override)" file="$(arg feature_override)" command="load"/>
+  <param name="stack_sort_pipeline/visualization_frame" value="$(arg map_frame)"/>
+  <param name="stack_sort_pipeline/pose_source" value="tf"/>
+  <param name="stack_sort_pipeline/pose_frame" value="$(arg map_frame)"/>
+  <param name="stack_sort_pipeline/base_frame" value="$(arg base_frame)"/>
+  <param name="stack_sort_pipeline/wait_for_localization_inputs" value="$(arg wait_for_localization_inputs)"/>
+  <param name="stack_sort_pipeline/startup_timeout" value="$(arg startup_timeout)"/>
+  <param name="stack_sort_pipeline/map_topic" value="$(arg map_topic)"/>
+  <param name="stack_sort_pipeline/scan_topic" value="$(arg scan_topic)"/>
+  <param name="stack_sort_pipeline/odom_topic" value="$(arg odom_topic)"/>
+  <param name="stack_sort_pipeline/amcl_topic" value="$(arg amcl_topic)"/>
+  <param name="stack_sort_pipeline/localization_watchdog_enabled" value="false"/>
+  <param name="stack_sort_pipeline/emergency_stop_topic" value="$(arg localization_estop_topic)"/>
+  <param name="stack_sort_pipeline/require_initial_pose_before_start" value="$(arg require_initial_pose_before_start)"/>
+  <param name="stack_sort_pipeline/initial_pose_settle_time" value="$(arg initial_pose_settle_time)"/>
+  <param name="stack_sort_pipeline/initial_pose_request_nomotion_update" value="$(arg initial_pose_request_nomotion_update)"/>
+  <param name="stack_sort_pipeline/confirm_before_start" value="$(arg confirm_before_start)"/>
+  <param name="stack_sort_pipeline/search_spin_when_no_target" value="$(arg search_spin_when_no_target)"/>
+  <param name="stack_sort_pipeline/use_wpb_grab_action" value="$(arg use_wpb_grab_action)"/>
+  <param name="stack_sort_pipeline/wpb_objects_topic" value="/wpb_home/objects_3d"/>
+  <param name="stack_sort_pipeline/wpb_grab_action_topic" value="/wpb_home/grab_action"/>
+  <param name="stack_sort_pipeline/wpb_grab_target_color_topic" value="$(arg wpb_grab_target_color_topic)"/>
+  <param name="stack_sort_pipeline/wpb_grab_result_topic" value="/wpb_home/grab_result"/>
+  <param name="stack_sort_pipeline/wpb_grab_object_wait_timeout" value="$(arg wpb_grab_object_wait_timeout)"/>
+  <param name="stack_sort_pipeline/wpb_grab_result_timeout" value="$(arg wpb_grab_result_timeout)"/>
+  <param name="stack_sort_pipeline/show_debug" value="$(arg show_debug)"/>
+  <param name="stack_sort_pipeline/drive_to_source_before_search" value="true"/>
+  <param name="stack_sort_pipeline/gazebo_enable_helper" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_attach_on_pick" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_validate_grasp_window" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_verify_physical_pick" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_use_robot_model_pose" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_use_source_pick_targets" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_stabilize_stack_on_release" value="false"/>
+  <param name="stack_sort_pipeline/gazebo_use_absolute_drop_poses" value="false"/>
+  <rosparam param="stack_sort_pipeline/gazebo_initial_model_poses">{}</rosparam>
+
+  <node name="stack_sort_pipeline" pkg="arm_grab_task" type="stack_sort_pipeline.py" output="screen"/>
+
+  <node if="$(arg rviz)" name="stack_sort_rviz" pkg="rviz" type="rviz"
+        args="-d $(find arm_grab_task)/rviz/stack_sort_status_map.rviz"/>
+</launch>

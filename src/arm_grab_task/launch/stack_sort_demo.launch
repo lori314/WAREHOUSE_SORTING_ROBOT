@@ -1,0 +1,40 @@
+<launch>
+  <arg name="auto_start_pipeline" default="false"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find wpr_simulation)/worlds/wpb_simple.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <node name="spawn_robot" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find wpr_simulation)/models/wpb_home_mani.model -urdf -model wpb_home"/>
+
+  <include file="$(find wpr_simulation)/launch/wpb_home_controllers.launch"/>
+
+      <rosparam file="$(find arm_grab_task)/config/stack_sort_params.yaml" command="load"/>
+
+  <!-- Red boxes -->
+  <node name="red_box_1" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/red_box.model -x 1.5 -y 0.25 -z 0 -urdf -model red_box_1"/>
+  <node name="red_box_2" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/red_box.model -x 2.0 -y -0.20 -z 0 -urdf -model red_box_2"/>
+
+  <!-- Green boxes -->
+  <node name="green_box_1" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/green_box.model -x 1.8 -y 0.70 -z 0 -urdf -model green_box_1"/>
+  <node name="green_box_2" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/green_box.model -x 2.1 -y 0.35 -z 0 -urdf -model green_box_2"/>
+
+  <!-- Blue boxes -->
+  <node name="blue_box_1" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/blue_box.model -x 1.7 -y -0.70 -z 0 -urdf -model blue_box_1"/>
+  <node name="blue_box_2" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/blue_box.model -x 2.2 -y -0.35 -z 0 -urdf -model blue_box_2"/>
+
+  <node if="$(arg auto_start_pipeline)" name="stack_sort_pipeline"
+        pkg="arm_grab_task" type="stack_sort_pipeline.py" output="screen"/>
+</launch>

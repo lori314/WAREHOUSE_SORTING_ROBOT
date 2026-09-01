@@ -1,0 +1,38 @@
+<launch>
+  <arg name="zone_name" default="A"/>
+  <arg name="node_name" default="abc_zone_capture"/>
+  <arg name="zone_role" default="source"/>
+  <arg name="color" default="green"/>
+  <arg name="output_file" default="/tmp/warehouse_abc_zones.yaml"/>
+  <arg name="odom_topic" default="/odom"/>
+  <arg name="pose_source" default="tf"/>
+  <arg name="map_frame" default="map"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="gazebo_model_name" default="wpb_home"/>
+  <arg name="gazebo_reference_frame" default="world"/>
+  <arg name="service_name" default="/warehouse_tuning/capture_abc_zone"/>
+  <arg name="status_topic" default="/warehouse_tuning/abc_zone_status"/>
+  <arg name="stack_anchor_forward_offset" default="0.56"/>
+  <arg name="stack_anchor_side_offset" default="0.0"/>
+  <arg name="table_height" default="0.0"/>
+
+  <rosparam file="$(find warehouse_tuning)/config/lab_tuning.yaml" command="load"/>
+
+  <node pkg="warehouse_tuning" type="abc_zone_capture.py" name="$(arg node_name)" output="screen">
+    <param name="zone_name" value="$(arg zone_name)"/>
+    <param name="zone_role" value="$(arg zone_role)"/>
+    <param name="color" value="$(arg color)"/>
+    <param name="output_file" value="$(arg output_file)"/>
+    <param name="odom_topic" value="$(arg odom_topic)"/>
+    <param name="pose_source" value="$(arg pose_source)"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="gazebo_model_name" value="$(arg gazebo_model_name)"/>
+    <param name="gazebo_reference_frame" value="$(arg gazebo_reference_frame)"/>
+    <param name="service_name" value="$(arg service_name)"/>
+    <param name="status_topic" value="$(arg status_topic)"/>
+    <param name="stack_anchor_forward_offset" value="$(arg stack_anchor_forward_offset)"/>
+    <param name="stack_anchor_side_offset" value="$(arg stack_anchor_side_offset)"/>
+    <param name="table_height" value="$(arg table_height)"/>
+  </node>
+</launch>

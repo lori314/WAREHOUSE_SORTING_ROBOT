@@ -1,0 +1,19 @@
+<launch>
+  <!-- 启动包含球体的简单室内环境 -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find wpr_simulation)/worlds/wpb_simple.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- 生成红色和蓝色的球作为目标 -->
+  <node name="red_ball" pkg="gazebo_ros" type="spawn_model" args="-file $(find wpr_simulation)/models/balls/red_ball.model -x 2.0 -y 0.0 -z 0 -urdf -model red_ball" />
+  <node name="blue_ball" pkg="gazebo_ros" type="spawn_model" args="-file $(find wpr_simulation)/models/balls/blue_ball.model -x 1.5 -y 1.0 -z 0 -urdf -model blue_ball" />
+
+  <!-- 生成带机械臂的机器人模型 wpb_home_mani -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-file $(find wpr_simulation)/models/wpb_home_mani.model -urdf -model wpb_home" />
+
+  <!-- 加载 WPB_HOME 机械臂控制器（必须添加以支持抓取指令） -->
+  <include file="$(find wpr_simulation)/launch/wpb_home_controllers.launch"/>
+</launch>

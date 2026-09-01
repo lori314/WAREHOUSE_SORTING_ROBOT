@@ -1,0 +1,42 @@
+<launch>
+  <arg name="cargo_type" default="natural"/>
+  <arg name="node_name" default="cargo_feature_capture"/>
+  <arg name="output_file" default="/tmp/warehouse_cargo_features.yaml"/>
+  <arg name="rgb_topic" default="/kinect2/sd/image_color_rect"/>
+  <arg name="depth_topic" default="/kinect2/sd/image_depth_rect"/>
+  <arg name="camera_info_topic" default="/kinect2/sd/camera_info"/>
+  <arg name="service_name" default="/warehouse_tuning/capture_cargo_features"/>
+  <arg name="status_topic" default="/warehouse_tuning/cargo_feature_status"/>
+  <arg name="min_area" default="500"/>
+  <arg name="roi_x" default="0.30"/>
+  <arg name="roi_y" default="0.42"/>
+  <arg name="roi_width" default="0.35"/>
+  <arg name="roi_height" default="0.36"/>
+  <arg name="require_fresh_image" default="true"/>
+  <arg name="capture_settle_seconds" default="0.2"/>
+  <arg name="save_debug_images" default="false"/>
+  <arg name="debug_output_dir" default="/tmp/warehouse_tuning_debug"/>
+  <arg name="allow_simulated_fallback" default="false"/>
+
+  <rosparam file="$(find warehouse_tuning)/config/lab_tuning.yaml" command="load"/>
+
+  <node pkg="warehouse_tuning" type="cargo_feature_capture.py" name="$(arg node_name)" output="screen">
+    <param name="cargo_type" value="$(arg cargo_type)"/>
+    <param name="output_file" value="$(arg output_file)"/>
+    <param name="rgb_topic" value="$(arg rgb_topic)"/>
+    <param name="depth_topic" value="$(arg depth_topic)"/>
+    <param name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <param name="service_name" value="$(arg service_name)"/>
+    <param name="status_topic" value="$(arg status_topic)"/>
+    <param name="min_area" value="$(arg min_area)"/>
+    <param name="roi/x" value="$(arg roi_x)"/>
+    <param name="roi/y" value="$(arg roi_y)"/>
+    <param name="roi/width" value="$(arg roi_width)"/>
+    <param name="roi/height" value="$(arg roi_height)"/>
+    <param name="require_fresh_image" value="$(arg require_fresh_image)"/>
+    <param name="capture_settle_seconds" value="$(arg capture_settle_seconds)"/>
+    <param name="save_debug_images" value="$(arg save_debug_images)"/>
+    <param name="debug_output_dir" value="$(arg debug_output_dir)"/>
+    <param name="allow_simulated_fallback" value="$(arg allow_simulated_fallback)"/>
+  </node>
+</launch>

@@ -1,0 +1,35 @@
+<launch>
+  <!-- ═══════════════════════════════════════════════
+   web_bridges_only.launch
+   Minimal launch: only rosbridge + web_video_server.
+   Use when the pipeline is already running separately.
+   ═══════════════════════════════════════════════ -->
+
+  <arg name="rosbridge_port"    default="9090"/>
+  <arg name="video_server_port" default="8080"/>
+  <arg name="web_port"          default="8000"/>
+  <arg name="open_browser"      default="true"/>
+
+  <!-- rosbridge WebSocket server -->
+  <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket"
+        output="screen">
+    <param name="port"    value="$(arg rosbridge_port)"/>
+    <param name="address" value="0.0.0.0"/>
+  </node>
+
+  <!-- MJPEG video stream server -->
+  <node name="web_video_server" pkg="web_video_server" type="web_video_server"
+        output="screen">
+    <param name="port"    value="$(arg video_server_port)"/>
+    <param name="address" value="0.0.0.0"/>
+  </node>
+
+  <!-- Static file server for dashboard.html -->
+  <node name="web_file_server" pkg="arm_grab_task" type="serve_web.sh"
+        output="screen" args="$(arg web_port)"/>
+
+  <!-- Open browser (optional) -->
+  <node if="$(arg open_browser)" name="open_dashboard_browser"
+        pkg="arm_grab_task" type="open_dashboard.sh" output="screen"
+        args="$(arg web_port)"/>
+</launch>

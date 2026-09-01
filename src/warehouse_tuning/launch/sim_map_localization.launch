@@ -1,0 +1,40 @@
+<launch>
+  <arg name="publish_mock_map" default="true"/>
+  <arg name="use_saved_map" default="false"/>
+  <arg name="map_file" default="/tmp/warehouse_tuning_sim/lab.yaml"/>
+  <arg name="map_frame" default="map"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="initial_x" default="0.0"/>
+  <arg name="initial_y" default="0.0"/>
+  <arg name="initial_yaw" default="0.0"/>
+  <arg name="map_profile" default="empty"/>
+  <arg name="set_initial_pose" default="false"/>
+
+  <node if="$(arg publish_mock_map)" pkg="warehouse_tuning" type="sim_map_publisher.py"
+        name="sim_map_publisher" output="screen">
+    <param name="frame_id" value="$(arg map_frame)"/>
+    <param name="profile" value="$(arg map_profile)"/>
+  </node>
+
+  <node if="$(arg use_saved_map)" name="map_server" pkg="map_server" type="map_server"
+        args="$(arg map_file)"/>
+
+  <node pkg="warehouse_tuning" type="sim_localization_node.py"
+        name="sim_localization" output="screen">
+    <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="initial_x" value="$(arg initial_x)"/>
+    <param name="initial_y" value="$(arg initial_y)"/>
+    <param name="initial_yaw" value="$(arg initial_yaw)"/>
+  </node>
+
+  <node if="$(arg set_initial_pose)" pkg="warehouse_tuning" type="initial_pose_setter.py"
+        name="initial_pose_setter" output="screen">
+    <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="x" value="$(arg initial_x)"/>
+    <param name="y" value="$(arg initial_y)"/>
+    <param name="yaw" value="$(arg initial_yaw)"/>
+  </node>
+</launch>

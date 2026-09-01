@@ -1,0 +1,22 @@
+<launch>
+  <arg name="map_file" default="$(env HOME)/maps/lab.yaml"/>
+  <arg name="zone_file" default="$(env HOME)/maps/abc_zones.yaml"/>
+  <arg name="rviz" default="true"/>
+  <arg name="rvizconfig" default="$(find warehouse_tuning)/rviz/field_nav_smoke.rviz"/>
+  <arg name="localization_mode" default="manual"/>
+  <arg name="set_initial_pose" default="false"/>
+  <arg name="confirm_before_cruise" default="false"/>
+  <arg name="dry_run" default="false"/>
+
+  <include file="$(find warehouse_tuning)/launch/field_nav_smoke.launch">
+    <arg name="map_file" value="$(arg map_file)"/>
+    <arg name="zone_file" value="$(arg zone_file)"/>
+    <arg name="sequence" value="A,B,C"/>
+    <arg name="rviz" value="$(arg rviz)"/>
+    <arg name="rvizconfig" value="$(arg rvizconfig)"/>
+    <arg name="localization_mode" value="$(arg localization_mode)"/>
+    <arg name="set_initial_pose" value="$(arg set_initial_pose)"/>
+    <arg name="confirm_before_cruise" value="$(arg confirm_before_cruise)"/>
+    <arg name="dry_run" value="$(arg dry_run)"/>
+  </include>
+</launch>

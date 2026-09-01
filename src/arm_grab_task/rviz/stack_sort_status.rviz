@@ -1,0 +1,43 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Reference Frame: world
+    - Class: rviz/TF
+      Enabled: true
+      Name: TF
+    - Class: rviz/RobotModel
+      Enabled: true
+      Name: RobotModel
+      Robot Description: robot_description
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /stack_sort/markers
+      Name: StackSortMarkers
+  Enabled: true
+  Global Options:
+    Fixed Frame: world
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 4.5
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 0.75
+      Yaw: 0.8
+Window Geometry:
+  Height: 900
+  Width: 1400

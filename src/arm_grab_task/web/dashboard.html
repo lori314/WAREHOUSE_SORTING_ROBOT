@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仓库分拣机器人 - 实时仪表盘</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --panel-bg: #161625;
+    --border: #2a2a3e;
+    --text: #d0d0e0;
+    --text-dim: #7878a0;
+    --accent: #3a7bd5;
+    --green: #0ae044;
+    --red: #ff2828;
+    --blue: #2888ff;
+    --yellow: #ffb828;
+    --orange: #ff6b28;
+    --pink: #e028e0;
+    --header-h: 44px;
+    --status-w: 260px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans SC', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  /* ── Header ── */
+  #header {
+    height: var(--header-h);
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  #header .title { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+  #header .title span { color: var(--text-dim); font-weight: 400; margin-left: 6px; font-size: 12px; }
+  #header .right { display:flex; align-items:center; gap:12px; }
+  #connection-dot { width:8px; height:8px; border-radius:50%; background:var(--red); transition:background 0.3s; }
+  #connection-dot.online { background:var(--green); box-shadow:0 0 6px var(--green); }
+  #state-badge {
+    padding: 3px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    transition: all 0.4s;
+  }
+  /* ── Main content ── */
+  #main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  /* ── Camera panel ── */
+  #camera-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: #000;
+    position: relative;
+    min-width: 0;
+  }
+  #camera-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #camera-feed {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  #camera-feed.loading { opacity: 0.15; }
+  #overlay-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .detection-box {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 6px;
+    transform: translate(-50%, -50%);
+    animation: pulse 1.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .detection-label {
+    position: absolute;
+    transform: translate(-50%, -120%);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 4px currentColor; }
+    50% { opacity: 1.0; box-shadow: 0 0 14px currentColor; }
+  }
+  #camera-placeholder {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  #camera-info {
+    height: 28px;
+    background: var(--panel-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  /* ── Right panel ── */
+  #right-panel {
+    width: 540px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  /* ── Map panel ── */
+  #map-panel {
+    flex: 1;
+    position: relative;
+    background: #0a0a16;
+    border-bottom: 1px solid var(--border);
+    min-height: 0;
+    overflow: hidden;
+  }
+  #map-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  #map-canvas:active { cursor: grabbing; }
+  #map-loading {
+    display: flex;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    color: var(--text-dim);
+    font-size: 13px;
+    pointer-events: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #map-legend {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    font-size: 10px;
+    color: var(--text-dim);
+    pointer-events: none;
+    line-height: 1.6;
+  }
+  #map-legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+  /* ── Status panel ── */
+  #status-panel {
+    height: 360px;
+    background: var(--panel-bg);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  #status-panel .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+  .progress-bar-outer {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #5ba0f0);
+    border-radius: 3px;
+    transition: width 0.5s;
+  }
+  #live-status {
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.025);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .live-status-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  #live-current-state {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  #live-current-target {
+    font-size: 12px;
+    color: var(--yellow);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #live-current-reason {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.3;
+    min-height: 16px;
+    word-break: break-word;
+  }
+  .live-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 14px;
+    font-size: 12px;
+  }
+  .live-status-grid .label { color: var(--text-dim); }
+  .live-status-grid .val {
+    color: var(--text);
+    font-weight: 700;
+    text-align: right;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    font-size: 13px;
+  }
+  .metrics-grid .val { font-weight: 600; }
+  .metrics-grid .val.green-c { color: var(--green); }
+  .metrics-grid .val.red-c { color: var(--red); }
+  .metrics-grid .val.blue-c { color: var(--blue); }
+  .metric-item { display:flex; justify-content:space-between; }
+  .metric-item .label { color: var(--text-dim); }
+  #error-banner {
+    display: none;
+    background: rgba(255,40,40,0.15);
+    border: 1px solid rgba(255,40,40,0.4);
+    color: #ff6060;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  #operator-panel {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+  .control-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .action-btn {
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #202036;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .action-btn.primary {
+    background: #1c3c25;
+    border-color: rgba(10,224,68,0.45);
+    color: #8cffaa;
+  }
+  .action-btn.danger {
+    background: #421414;
+    border-color: rgba(255,40,40,0.55);
+    color: #ff8a8a;
+  }
+  #operator-message {
+    min-height: 18px;
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  #operator-message.warn { color: var(--yellow); }
+  #operator-message.ok { color: var(--green); }
+  #operator-message.error { color: #ff7070; }
+  #fault-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    z-index: 20;
+  }
+  #fault-modal.show { display: flex; }
+  .fault-dialog {
+    width: min(460px, calc(100vw - 32px));
+    background: #1a1a2a;
+    border: 1px solid rgba(255,40,40,0.55);
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    padding: 18px;
+  }
+  .fault-title {
+    color: #ff7070;
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  #fault-message {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+    margin-bottom: 14px;
+  }
+  #fault-close-btn {
+    width: 100%;
+  }
+  /* ── Responsive tweaks ── */
+  @media (max-width: 1280px) {
+    #right-panel { width: 440px; }
+    #status-panel { height: 330px; }
+    .metrics-grid { font-size: 12px; gap: 4px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div id="header">
+  <div class="title">🏭 仓库分拣机器人 <span>实时仪表盘</span></div>
+  <div class="right">
+    <div id="connection-dot" title="ROS 连接状态"></div>
+    <span id="header-state" style="font-size:12px;color:var(--text-dim)">等待连接…</span>
+    <div id="state-badge" style="background:var(--border);color:var(--text-dim)">IDLE</div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+
+  <!-- Camera -->
+  <div id="camera-panel">
+    <div id="camera-wrapper">
+      <div id="camera-placeholder">
+        <div style="font-size:32px;margin-bottom:8px;">📷</div>
+        等待相机数据…
+      </div>
+      <img id="camera-feed" class="loading"
+           src=""
+           alt="Camera Feed"
+           crossorigin="anonymous">
+      <div id="overlay-layer"></div>
+    </div>
+    <div id="camera-info">
+      <span id="cam-topic-label">/kinect2/sd/image_color_rect</span>
+      <span id="cam-resolution">960×540</span>
+    </div>
+  </div>
+
+  <!-- Right: Map + Status -->
+  <div id="right-panel">
+    <div id="map-panel">
+      <canvas id="map-canvas"></canvas>
+      <div id="map-loading">
+        <div class="spinner"></div>
+        <span>等待地图数据…</span>
+      </div>
+      <div id="map-legend">
+        <div><span style="background:#2888ff;"></span> 机器人</div>
+        <div><span style="background:rgba(255,60,60,0.7);"></span> 激光扫描</div>
+        <div><span style="background:var(--yellow);"></span> 规划路径</div>
+        <div><span style="background:#20e0b0;"></span> 实际轨迹</div>
+      </div>
+    </div>
+    <div id="status-panel">
+      <div class="section-title">📊 分拣进度</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;">
+        <span id="progress-text">0 / 0</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-outer">
+        <div id="progress-bar" class="progress-bar-inner" style="width:0%"></div>
+      </div>
+      <div id="live-status">
+        <div class="live-status-head">
+          <span id="live-current-state">等待连接</span>
+          <span id="live-current-target">未锁定目标</span>
+        </div>
+        <div id="live-current-reason">等待 ROS 状态…</div>
+        <div class="live-status-grid">
+          <div class="metric-item"><span class="label">夹取阶段</span><span class="val" id="live-grab-step">—</span></div>
+          <div class="metric-item"><span class="label">目标颜色</span><span class="val" id="live-grab-color">—</span></div>
+          <div class="metric-item"><span class="label">补偿侧</span><span class="val" id="live-grab-side">—</span></div>
+          <div class="metric-item"><span class="label">Y 补偿</span><span class="val" id="live-grab-offset">—</span></div>
+          <div class="metric-item"><span class="label">颜色增量</span><span class="val" id="live-grab-color-delta">—</span></div>
+          <div class="metric-item"><span class="label">物体 Y</span><span class="val" id="live-object-y">—</span></div>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item"><span class="label">🟢 Green</span><span class="val green-c" id="cnt-green">—</span></div>
+        <div class="metric-item"><span class="label">🔴 Red</span><span class="val red-c" id="cnt-red">—</span></div>
+        <div class="metric-item"><span class="label">⏱ 本轮耗时</span><span class="val" id="val-cycle-time">—</span></div>
+        <div class="metric-item"><span class="label">📏 深度</span><span class="val" id="val-depth">—</span></div>
+        <div class="metric-item"><span class="label">🎯 成功率</span><span class="val" id="val-success">—</span></div>
+        <div class="metric-item"><span class="label">🔄 重试</span><span class="val" id="val-retries">—</span></div>
+      </div>
+      <div id="operator-panel">
+        <div class="section-title">操作</div>
+        <div class="control-row">
+          <button id="confirm-start-btn" class="action-btn primary" disabled>确认位姿并开始</button>
+          <button id="emergency-stop-btn" class="action-btn danger" disabled>急停停止</button>
+        </div>
+        <div id="operator-message">等待 ROS 连接…</div>
+      </div>
+      <div id="error-banner"></div>
+    </div>
+  </div>
+</div>
+
+<div id="fault-modal">
+  <div class="fault-dialog">
+    <div class="fault-title">流程异常，机器人已停止</div>
+    <div id="fault-message">未知异常</div>
+    <button id="fault-close-btn" class="action-btn danger">关闭提示</button>
+  </div>
+</div>
+
+<!-- ── roslibjs CDN ── -->
+<script src="https://cdn.jsdelivr.net/npm/roslib@1.4.0/build/roslib.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  Configuration — auto-detect host from page URL
+//  Local file://  → localhost
+//  Remote http://  → same host as the page
+// ═══════════════════════════════════════════
+function detectHost() {
+  const u = new URL(window.location.href);
+  if (u.protocol === 'file:') return 'localhost';
+  return u.hostname;
+}
+const HOST = detectHost();
+const CONFIG = {
+  rosbridgeUrl:    'ws://'  + HOST + ':9090',
+  cameraStreamUrl: 'http://' + HOST + ':8080/stream?topic=/kinect2/sd/image_color_rect',
+  cameraWidth: 960,
+  cameraHeight: 540,
+  topics: {
+    status:       '/stack_sort/status',
+    amclPose:     '/amcl_pose',
+    map:          '/map',
+    scan:         '/scan',
+    fieldMarkers: '/field_nav_smoke/markers',
+    stackMarkers: '/stack_sort/markers',
+    plannedPath:  '/field_nav_smoke/planned_path',
+    actualPath:   '/field_nav_smoke/actual_path',
+    grabResult:   '/wpb_home/grab_result',
+    grabStatus:   '/wpb_home/grab_status',
+    wpbObjects:   '/wpb_home/objects_3d',
+    emergencyStop: '/warehouse_tuning/emergency_stop',
+    cmdVel:       '/cmd_vel',
+    behaviors:    '/wpb_home/behaviors',
+  },
+  services: {
+    confirmStart: '/stack_sort_pipeline/confirm_start',
+  },
+  mapCanvasSize: 520,
+  metersPerPx: 0.05,
+};
+
+const COLOR_MAP = {
+  green:  [10, 230, 68],
+  red:    [255, 40, 40],
+  blue:   [40, 136, 255],
+};
+const ZONE_COLORS = {
+  A: [40, 136, 255],
+  B: [10, 230, 68],
+  C: [255, 40, 40],
+};
+const STATE_COLORS = {
+  LOCALIZING:    { bg: '#1a3350', fg: '#5ba0f0' },
+  SEARCH:        { bg: '#1a3a1a', fg: '#30d050' },
+  ALIGN:         { bg: '#3a2a10', fg: '#ffb828' },
+  APPROACH:      { bg: '#3a2010', fg: '#ff8828' },
+  PICK:          { bg: '#3a1010', fg: '#ff5040' },
+  CARRY:         { bg: '#2a1030', fg: '#c060e0' },
+  DROP:          { bg: '#102030', fg: '#40a0e0' },
+  RECOVER_RETRY: { bg: '#3a1020', fg: '#ff4080' },
+  FINISH:        { bg: '#103020', fg: '#30e060' },
+  ERROR:         { bg: '#3a0000', fg: '#ff2020' },
+  IDLE:          { bg: '#1a1a2e', fg: '#7878a0' },
+};
+const GRAB_STEP_LABELS = {
+  'idle': '空闲',
+  'stopped': '已停止',
+  'object x': '初步横向对准',
+  'hand up': '抬升机械臂',
+  'forward': '前进靠近',
+  'fine align': '闭爪前微调',
+  'grab': '闭合夹爪',
+  'object up': '抬起物体',
+  'backward': '后退撤出',
+  'done': '夹取完成',
+  'fail lift timeout': '抬升未就绪',
+};
+const SIDE_LABELS = {
+  left: '左侧',
+  center: '中线',
+  right: '右侧',
+  global: '全局',
+};
+
+// ═══════════════════════════════════════════
+//  Global state
+// ═══════════════════════════════════════════
+let rosConnected = false;
+let mapReceived = false;
+let rosClient = null;
+let confirmStartClient = null;
+let emergencyStopPub = null;
+let cmdVelPub = null;
+let behaviorsPub = null;
+let lastFaultKey = '';
+let emergencyIssuedForStatusError = false;
+let lastVisionFaultKey = '';
+
+// Store latest data from each topic
+let latestStatus   = null;  // parsed JSON from /stack_sort/status
+let latestGrabResult = '';
+let latestGrabStatus = null;
+let latestWpbObjects = [];
+let latestWpbObjectsStamp = 0;
+let latestAmclPose = null;  // {x, y, yaw}
+let latestScan     = null;  // array of {x, y} in map frame
+let latestFieldMarkers = []; // parsed zone info
+let latestStackMarkers = { anchors: [], dropBases: [], text: null };
+let latestPlannedPath = []; // array of {x, y}
+let latestActualPath  = []; // array of {x, y}
+
+// Map data (immutable after first receipt — it's latched)
+let mapInfo    = null;  // {origin, resolution, width, height}
+let mapData    = null;  // Int8Array
+let mapOffscreen = null; // OffscreenCanvas
+
+// Canvas view
+let viewOriginX = 0;  // world x at canvas left edge
+let viewOriginY = 0;  // world y at canvas bottom edge
+let viewScale   = CONFIG.metersPerPx; // meters per pixel
+
+// Drag state
+let dragging = false;
+let dragStartX = 0, dragStartY = 0;
+let dragViewStartX = 0, dragViewStartY = 0;
+
+// Last scan render time (throttle)
+let lastScanRenderTime = 0;
+const SCAN_RENDER_INTERVAL = 200; // ms
+const WPB_OBJECT_STALE_MS = 2500;
+let lastManualStopAt = 0;
+
+// ═══════════════════════════════════════════
+//  DOM references
+// ═══════════════════════════════════════════
+const $ = (id) => document.getElementById(id);
+const connDot       = $('connection-dot');
+const headerState   = $('header-state');
+const stateBadge    = $('state-badge');
+const cameraFeed    = $('camera-feed');
+const cameraPh      = $('camera-placeholder');
+const overlayLayer  = $('overlay-layer');
+const camResolution = $('cam-resolution');
+const mapCanvas     = $('map-canvas');
+const mapLoading    = $('map-loading');
+const progressText  = $('progress-text');
+const progressPct   = $('progress-pct');
+const progressBar   = $('progress-bar');
+const errorBanner   = $('error-banner');
+const liveCurrentState = $('live-current-state');
+const liveCurrentTarget = $('live-current-target');
+const liveCurrentReason = $('live-current-reason');
+const liveGrabStep = $('live-grab-step');
+const liveGrabColor = $('live-grab-color');
+const liveGrabSide = $('live-grab-side');
+const liveGrabOffset = $('live-grab-offset');
+const liveGrabColorDelta = $('live-grab-color-delta');
+const liveObjectY = $('live-object-y');
+const confirmStartBtn = $('confirm-start-btn');
+const emergencyStopBtn = $('emergency-stop-btn');
+const operatorMessage = $('operator-message');
+const faultModal = $('fault-modal');
+const faultMessage = $('fault-message');
+const faultCloseBtn = $('fault-close-btn');
+const ctx = mapCanvas.getContext('2d');
+
+// ═══════════════════════════════════════════
+//  Operator actions
+// ═══════════════════════════════════════════
+function setOperatorMessage(text, level = '') {
+  operatorMessage.textContent = text;
+  operatorMessage.className = level;
+}
+
+function updateControlButtons() {
+  const state = latestStatus ? latestStatus.state : '';
+  const canConfirm = rosConnected && (!state || state === 'LOCALIZING');
+  confirmStartBtn.disabled = !canConfirm;
+  emergencyStopBtn.disabled = !rosConnected;
+}
+
+function zeroTwistMessage() {
+  return new ROSLIB.Message({
+    linear:  { x: 0, y: 0, z: 0 },
+    angular: { x: 0, y: 0, z: 0 },
+  });
+}
+
+function publishZeroVelocityBurst() {
+  if (!cmdVelPub) return;
+  let count = 0;
+  const timer = setInterval(() => {
+    if (!cmdVelPub || count >= 24) {
+      clearInterval(timer);
+      return;
+    }
+    cmdVelPub.publish(zeroTwistMessage());
+    count += 1;
+  }, 50);
+}
+
+function publishBehaviorStops() {
+  if (!behaviorsPub) return;
+  ['grab stop', 'place stop', 'object_detect stop'].forEach((cmd) => {
+    behaviorsPub.publish(new ROSLIB.Message({ data: cmd }));
+  });
+}
+
+function requestEmergencyStop(reason, showDialog = false) {
+  const payload = {
+    reason: reason,
+    source: 'web_dashboard',
+    stamp: Date.now() / 1000.0,
+  };
+  publishZeroVelocityBurst();
+  publishBehaviorStops();
+  if (emergencyStopPub) {
+    emergencyStopPub.publish(new ROSLIB.Message({ data: JSON.stringify(payload) }));
+  }
+  setOperatorMessage('已发送停止命令', 'error');
+  if (showDialog) {
+    showFaultModal('已发送停止命令，底盘、抓取和识别流程将进入停止状态。');
+  }
+}
+
+function triggerManualEmergencyStop() {
+  const now = Date.now();
+  if (now - lastManualStopAt < 500) return;
+  lastManualStopAt = now;
+  requestEmergencyStop('dashboard_button_stop', false);
+}
+
+function callConfirmStart() {
+  if (!confirmStartClient) {
+    setOperatorMessage('ROS 服务尚未就绪', 'warn');
+    return;
+  }
+  confirmStartBtn.disabled = true;
+  setOperatorMessage('正在确认位姿…', 'warn');
+  confirmStartClient.callService(new ROSLIB.ServiceRequest({}), (result) => {
+    if (result && result.success) {
+      setOperatorMessage('位姿已确认，流程开始', 'ok');
+    } else {
+      setOperatorMessage((result && result.message) || '确认失败', 'error');
+      confirmStartBtn.disabled = false;
+    }
+  }, (err) => {
+    setOperatorMessage('确认服务调用失败: ' + err, 'error');
+    confirmStartBtn.disabled = false;
+  });
+}
+
+function showFaultModal(message) {
+  const key = String(message || 'unknown');
+  if (key === lastFaultKey && faultModal.classList.contains('show')) return;
+  lastFaultKey = key;
+  faultMessage.textContent = key;
+  faultModal.classList.add('show');
+}
+
+function closeFaultModal() {
+  faultModal.classList.remove('show');
+}
+
+function formatGrabStep(step) {
+  const key = String(step || '').trim().toLowerCase();
+  return GRAB_STEP_LABELS[key] || step || '—';
+}
+
+function formatSide(side) {
+  const key = String(side || '').trim().toLowerCase();
+  return SIDE_LABELS[key] || side || '—';
+}
+
+function formatMeters(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return n.toFixed(3) + ' m';
+}
+
+function isFreshWpbObjectList() {
+  return latestWpbObjects.length > 0 && (Date.now() - latestWpbObjectsStamp) <= WPB_OBJECT_STALE_MS;
+}
+
+function colorDetectionSummary() {
+  if (!latestStatus || !latestStatus.detections) return '';
+  const entries = Object.entries(latestStatus.detections)
+    .filter(([, det]) => det && Number.isFinite(Number(det.depth)) && Number(det.depth) > 0);
+  if (entries.length === 0) return '';
+  return '颜色目标 ' + entries.map(([color, det]) => {
+    const depth = Number(det.depth);
+    return `${color.toUpperCase()} ${depth.toFixed(2)}m`;
+  }).join(' / ');
+}
+
+function wpbObjectSummary() {
+  if (!isFreshWpbObjectList()) return '';
+  const first = latestWpbObjects[0];
+  const countText = `3D物体 ${latestWpbObjects.length} 个`;
+  if (!first) return countText;
+  const name = first.name ? first.name : 'obj';
+  return `${countText}: ${name} x=${Number(first.x).toFixed(2)} y=${Number(first.y).toFixed(2)}`;
+}
+
+function currentTargetText() {
+  if (latestStatus && latestStatus.target_color) {
+    return `目标 ${latestStatus.target_color.toUpperCase()}`;
+  }
+  const colorSummary = colorDetectionSummary();
+  if (colorSummary) return colorSummary;
+  const objectSummary = wpbObjectSummary();
+  if (objectSummary) return objectSummary;
+  const step = latestGrabStatus && latestGrabStatus.step ? latestGrabStatus.step : latestGrabResult;
+  if (step && !['idle', 'stopped'].includes(String(step).trim().toLowerCase())) {
+    return '夹取动作中';
+  }
+  return '等待目标';
+}
+
+function currentReasonText(state, reason) {
+  const visionWarning = visionDeviceWarning();
+  if (visionWarning) return visionWarning;
+  const step = latestGrabStatus && latestGrabStatus.step ? latestGrabStatus.step : latestGrabResult;
+  if (step && !['idle', 'stopped'].includes(String(step).trim().toLowerCase())) {
+    return `夹取阶段: ${formatGrabStep(step)}`;
+  }
+  if (state === 'SEARCH') {
+    if (colorDetectionSummary()) return '已看到颜色目标，等待流程锁定';
+    if (wpbObjectSummary()) return '3D 物体识别正常，等待颜色目标或抓取触发';
+    return '搜索目标中';
+  }
+  return reason || (rosConnected ? '等待流程状态…' : '等待 ROS 连接…');
+}
+
+function visionDeviceWarning() {
+  const h = latestStatus && latestStatus.vision_health ? latestStatus.vision_health : null;
+  if (!h || !h.enabled || h.device_ok !== false) return '';
+  const bad = [];
+  if (h.rgb_ok === false) {
+    const age = Number(h.rgb_age_sec);
+    bad.push(`RGB ${Number.isFinite(age) ? age.toFixed(1) + 's 未更新' : '未收到'}`);
+  }
+  if (h.depth_ok === false) {
+    const age = Number(h.depth_age_sec);
+    bad.push(`Depth ${Number.isFinite(age) ? age.toFixed(1) + 's 未更新' : '未收到'}`);
+  }
+  if (bad.length === 0) return '';
+  return `Kinect 数据异常: ${bad.join('，')}`;
+}
+
+function maybeShowVisionDeviceFault(state) {
+  const active = rosConnected && !['LOCALIZING', 'IDLE', 'FINISH', 'ERROR'].includes(state || '');
+  if (!active) return;
+  const warning = visionDeviceWarning();
+  if (!warning) {
+    lastVisionFaultKey = '';
+    return;
+  }
+  const h = latestStatus.vision_health || {};
+  const key = `${warning}|${h.rgb_topic || ''}|${h.depth_topic || ''}`;
+  if (key === lastVisionFaultKey) return;
+  lastVisionFaultKey = key;
+  showFaultModal(
+    `${warning}。这通常表示 Kinect/USB/驱动数据流为 0Hz，请检查 Kinect 电源、USB 线、驱动进程和 /kinect2/* 话题。`
+  );
+  setOperatorMessage('Kinect 数据流异常，疑似设备问题', 'error');
+}
+
+function updateLiveStatusPanel() {
+  const state = latestStatus ? (latestStatus.state || 'IDLE') : (rosConnected ? 'IDLE' : 'OFFLINE');
+  const reason = latestStatus ? (latestStatus.state_reason || '') : '';
+  const sc = STATE_COLORS[state] || STATE_COLORS.IDLE;
+
+  liveCurrentState.textContent = state;
+  liveCurrentState.style.color = sc.fg;
+  liveCurrentTarget.textContent = currentTargetText();
+  liveCurrentReason.textContent = currentReasonText(state, reason);
+
+  const step = latestGrabStatus && latestGrabStatus.step ? latestGrabStatus.step : latestGrabResult;
+  liveGrabStep.textContent = formatGrabStep(step);
+  liveGrabColor.textContent = latestGrabStatus && latestGrabStatus.color ? latestGrabStatus.color : '—';
+  liveGrabSide.textContent = latestGrabStatus ? formatSide(latestGrabStatus.side) : '—';
+  liveGrabOffset.textContent = latestGrabStatus ? formatMeters(latestGrabStatus.y_offset) : '—';
+  liveGrabColorDelta.textContent = latestGrabStatus ? formatMeters(latestGrabStatus.color_delta) : '—';
+  liveObjectY.textContent = latestGrabStatus ? formatMeters(latestGrabStatus.object_y) : '—';
+}
+
+// ═══════════════════════════════════════════
+//  Helper: world <-> canvas conversion
+// ═══════════════════════════════════════════
+function worldToCanvas(wx, wy, w, h) {
+  return {
+    x: (wx - viewOriginX) / viewScale,
+    y: h - (wy - viewOriginY) / viewScale,
+  };
+}
+function canvasToWorld(cx, cy, w, h) {
+  return {
+    x: viewOriginX + cx * viewScale,
+    y: viewOriginY + (h - cy) * viewScale,
+  };
+}
+
+// ═══════════════════════════════════════════
+//  Camera feed
+// ═══════════════════════════════════════════
+function startCameraFeed() {
+  cameraFeed.src = CONFIG.cameraStreamUrl;
+  cameraFeed.onload = () => {
+    cameraFeed.classList.remove('loading');
+    cameraPh.style.display = 'none';
+  };
+  cameraFeed.onerror = () => {
+    cameraPh.style.display = 'flex';
+  };
+  // Attempt reload on error every 5 seconds
+  setInterval(() => {
+    if (cameraFeed.naturalWidth === 0) {
+      cameraFeed.src = CONFIG.cameraStreamUrl;
+    }
+  }, 5000);
+}
+
+// ═══════════════════════════════════════════
+//  Detection overlay
+// ═══════════════════════════════════════════
+function renderDetectionOverlay() {
+  overlayLayer.innerHTML = '';
+  if (!latestStatus || !latestStatus.detections) return;
+
+  const imgW = cameraFeed.clientWidth  || CONFIG.cameraWidth;
+  const imgH = cameraFeed.clientHeight || CONFIG.cameraHeight;
+  if (imgW === 0) return;
+
+  const scaleX = imgW / CONFIG.cameraWidth;
+  const scaleY = imgH / CONFIG.cameraHeight;
+
+  for (const [color, det] of Object.entries(latestStatus.detections)) {
+    if (det.cx == null || det.cy == null) continue;
+    const rgb = COLOR_MAP[color] || [200,200,200];
+    const rgbaStr = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`;
+
+    // Bounding box (size based on sqrt(area) or fallback)
+    const boxPx = Math.max(24, Math.min(140, Math.sqrt(det.area || 2500) * 1.2 * scaleX));
+    const left = det.cx * scaleX;
+    const top  = det.cy * scaleY;
+
+    const box = document.createElement('div');
+    box.className = 'detection-box';
+    box.style.left   = left + 'px';
+    box.style.top    = top + 'px';
+    box.style.width  = boxPx + 'px';
+    box.style.height = boxPx + 'px';
+    box.style.borderColor = rgbaStr;
+    box.style.color  = rgbaStr;
+    overlayLayer.appendChild(box);
+
+    // Label
+    const label = document.createElement('div');
+    label.className = 'detection-label';
+    label.style.left = left + 'px';
+    label.style.top  = top + 'px';
+    label.style.color = rgbaStr;
+    const depthStr = det.depth ? ` d=${det.depth.toFixed(2)}m` : '';
+    label.textContent = `${color.toUpperCase()}${depthStr}`;
+    overlayLayer.appendChild(label);
+  }
+}
+
+// Handle window resize + image load for overlay repositioning
+cameraFeed.addEventListener('load', () => {
+  cameraFeed.classList.remove('loading');
+  cameraPh.style.display = 'none';
+  renderDetectionOverlay();
+});
+window.addEventListener('resize', renderDetectionOverlay);
+
+// ═══════════════════════════════════════════
+//  Map: occupancy grid
+// ═══════════════════════════════════════════
+function buildOffscreenMap(info, data) {
+  const w = info.width, h = info.height;
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width  = w;
+  offCanvas.height = h;
+  const octx = offCanvas.getContext('2d');
+  const imgData = octx.createImageData(w, h);
+
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    const idx = i * 4;
+    if (v < 0 || v > 100) {
+      // Unknown
+      imgData.data[idx] = 25; imgData.data[idx+1] = 25; imgData.data[idx+2] = 30; imgData.data[idx+3] = 255;
+    } else if (v === 0) {
+      // Free
+      imgData.data[idx] = 40; imgData.data[idx+1] = 40; imgData.data[idx+2] = 50; imgData.data[idx+3] = 255;
+    } else {
+      // Occupied — gradient from dark to light
+      const t = v / 100;
+      const c = Math.floor(50 + t * 170);
+      imgData.data[idx] = c; imgData.data[idx+1] = c; imgData.data[idx+2] = c; imgData.data[idx+3] = 255;
+    }
+  }
+  octx.putImageData(imgData, 0, 0);
+  return offCanvas;
+}
+
+function setInitialView(info) {
+  // Center on map, show it all
+  const mapW = info.width  * info.resolution;
+  const mapH = info.height * info.resolution;
+  const mapCx = info.origin.position.x + mapW / 2;
+  const mapCy = info.origin.position.y + mapH / 2;
+  const maxDim = Math.max(mapW, mapH);
+  viewScale = maxDim / (CONFIG.mapCanvasSize * 0.85);
+  viewOriginX = mapCx - (CONFIG.mapCanvasSize * viewScale) / 2;
+  viewOriginY = mapCy - (CONFIG.mapCanvasSize * viewScale) / 2;
+}
+
+// ═══════════════════════════════════════════
+//  Map: drawing functions
+// ═══════════════════════════════════════════
+function drawOccupancyGrid(cw, ch) {
+  if (!mapOffscreen || !mapInfo) return;
+
+  // Compute the region of the offscreen map that's visible
+  const res = mapInfo.resolution;
+  const ox = mapInfo.origin.position.x;
+  const oy = mapInfo.origin.position.y;
+
+  // World bounds currently in view
+  const viewW = cw * viewScale;
+  const viewH = ch * viewScale;
+
+  // Map cell range in view
+  const cellX0 = Math.max(0, Math.floor((viewOriginX - ox) / res));
+  const cellY0 = Math.max(0, Math.floor((viewOriginY - oy) / res));
+  const cellX1 = Math.min(mapInfo.width,  Math.ceil((viewOriginX + viewW - ox) / res) + 1);
+  const cellY1 = Math.min(mapInfo.height, Math.ceil((viewOriginY + viewH - oy) / res) + 1);
+
+  if (cellX0 >= cellX1 || cellY0 >= cellY1) return;
+
+  // Draw the visible portion of the offscreen canvas
+  const srcX = cellX0, srcY = cellY0;
+  const srcW = cellX1 - cellX0, srcH = cellY1 - cellY0;
+
+  // Where to draw on the main canvas
+  const destX = (ox + cellX0 * res - viewOriginX) / viewScale;
+  const destY = ch - (oy + cellY1 * res - viewOriginY) / viewScale;
+  const destW = srcW * res / viewScale;
+  const destH = srcH * res / viewScale;
+
+  ctx.drawImage(mapOffscreen, srcX, srcY, srcW, srcH, destX, destY, destW, destH);
+}
+
+function drawRobot(cw, ch) {
+  if (!latestAmclPose) return;
+  const p = worldToCanvas(latestAmclPose.x, latestAmclPose.y, cw, ch);
+  const yaw = latestAmclPose.yaw;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(-yaw); // Canvas Y is flipped, so negate
+
+  const size = 14 / viewScale / CONFIG.metersPerPx * viewScale; // ~14px
+  const s = Math.max(8, Math.min(28, 14 / viewScale * 0.05));
+  ctx.beginPath();
+  ctx.moveTo(s * 1.6, 0);
+  ctx.lineTo(-s, -s);
+  ctx.lineTo(-s * 0.5, 0);
+  ctx.lineTo(-s, s);
+  ctx.closePath();
+  ctx.fillStyle = '#2888ff';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLaserScan(cw, ch) {
+  if (!latestScan || !latestAmclPose) return;
+  const now = performance.now();
+  if (now - lastScanRenderTime < SCAN_RENDER_INTERVAL) return;
+  lastScanRenderTime = now;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,60,60,0.55)';
+  for (let i = 0; i < latestScan.length; i++) {
+    const pt = latestScan[i];
+    const p = worldToCanvas(pt.x, pt.y, cw, ch);
+    ctx.fillRect(p.x - 1.2, p.y - 1.2, 2.4, 2.4);
+  }
+  ctx.restore();
+}
+
+function drawMarkers(markers, cw, ch) {
+  if (!markers || markers.length === 0) return;
+
+  for (const m of markers) {
+    if (!m.pose) continue;
+    const wx = m.pose.position.x;
+    const wy = m.pose.position.y;
+    const p = worldToCanvas(wx, wy, cw, ch);
+
+    ctx.save();
+    switch (m.type) {
+      case 0: // ARROW
+        drawArrow(p.x, p.y, m);
+        break;
+      case 1: // CUBE
+        drawCube(p.x, p.y, m);
+        break;
+      case 2: // SPHERE
+        drawSphere(p.x, p.y, m);
+        break;
+      case 4: // LINE_STRIP
+        drawLineStrip(m, cw, ch);
+        break;
+      case 9: // TEXT_VIEW_FACING
+        drawTextLabel(p.x, p.y, m);
+        break;
+    }
+    ctx.restore();
+  }
+}
+
+function drawArrow(cx, cy, m) {
+  const s = 10;
+  ctx.fillStyle = `rgba(255,190,20,0.85)`;
+  ctx.strokeStyle = `rgba(255,190,20,0.85)`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s);
+  ctx.lineTo(cx, cy + s);
+  ctx.moveTo(cx - 5, cy + s - 5);
+  ctx.lineTo(cx, cy + s);
+  ctx.lineTo(cx + 5, cy + s - 5);
+  ctx.stroke();
+}
+
+function drawCube(cx, cy, m) {
+  const s = 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(cx - s/2, cy - s/2, s, s);
+  ctx.strokeRect(cx - s/2, cy - s/2, s, s);
+}
+
+function drawSphere(cx, cy, m) {
+  const r = 8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(40,136,255,0.6)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200,220,255,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawLineStrip(m, cw, ch) {
+  if (!m.points || m.points.length < 2) return;
+  ctx.strokeStyle = 'rgba(255,190,20,0.7)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  for (let i = 0; i < m.points.length; i++) {
+    const wp = worldToCanvas(m.points[i].x, m.points[i].y, cw, ch);
+    if (i === 0) ctx.moveTo(wp.x, wp.y);
+    else ctx.lineTo(wp.x, wp.y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawTextLabel(cx, cy, m) {
+  const text = (m.text || '').trim();
+  if (!text) return;
+  ctx.font = 'bold 11px "Segoe UI", "Noto Sans SC", sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, cx, cy - 8);
+}
+
+function drawPaths(cw, ch) {
+  // Planned path — dashed yellow
+  if (latestPlannedPath.length >= 2) {
+    ctx.strokeStyle = 'rgba(255,190,20,0.7)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    for (let i = 0; i < latestPlannedPath.length; i++) {
+      const p = worldToCanvas(latestPlannedPath[i].x, latestPlannedPath[i].y, cw, ch);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Actual path — solid teal
+  if (latestActualPath.length >= 2) {
+    ctx.strokeStyle = 'rgba(32,224,176,0.8)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i < latestActualPath.length; i++) {
+      const p = worldToCanvas(latestActualPath[i].x, latestActualPath[i].y, cw, ch);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawZoneLabels(cw, ch) {
+  // Draw zone letters from field markers
+  for (const m of latestFieldMarkers) {
+    if (m.type === 9 && m.text) { // TEXT_VIEW_FACING
+      const p = worldToCanvas(m.pose.position.x, m.pose.position.y, cw, ch);
+      ctx.font = 'bold 16px "Segoe UI", "Noto Sans SC", sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(m.text, p.x, p.y - 14);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  Main render loop
+// ═══════════════════════════════════════════
+function renderLoop() {
+  const cw = mapCanvas.clientWidth;
+  const ch = mapCanvas.clientHeight;
+  if (cw === 0 || ch === 0) {
+    requestAnimationFrame(renderLoop);
+    return;
+  }
+
+  // Resize canvas if needed
+  if (mapCanvas.width !== cw || mapCanvas.height !== ch) {
+    mapCanvas.width  = cw;
+    mapCanvas.height = ch;
+  }
+
+  // Clear
+  ctx.fillStyle = '#0a0a16';
+  ctx.fillRect(0, 0, cw, ch);
+
+  if (!mapReceived) {
+    requestAnimationFrame(renderLoop);
+    return;
+  }
+
+  // Draw layers
+  drawOccupancyGrid(cw, ch);
+  drawPaths(cw, ch);
+  drawLaserScan(cw, ch);
+  drawZoneLabels(cw, ch);
+  drawMarkers(latestFieldMarkers, cw, ch);
+  drawMarkers(latestStackMarkers.anchors, cw, ch);
+  drawMarkers(latestStackMarkers.dropBases, cw, ch);
+  drawRobot(cw, ch);
+
+  requestAnimationFrame(renderLoop);
+}
+
+// ═══════════════════════════════════════════
+//  Map interaction: pan & zoom
+// ═══════════════════════════════════════════
+mapCanvas.addEventListener('mousedown', (e) => {
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragViewStartX = viewOriginX;
+  dragViewStartY = viewOriginY;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const dx = (e.clientX - dragStartX) * viewScale;
+  const dy = (e.clientY - dragStartY) * viewScale;
+  viewOriginX = dragViewStartX - dx;
+  viewOriginY = dragViewStartY + dy;
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+mapCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 0.85 : 1.18;
+  const cw = mapCanvas.clientWidth, ch = mapCanvas.clientHeight;
+  // Zoom toward mouse position
+  const mx = e.offsetX, my = e.offsetY;
+  const worldPt = canvasToWorld(mx, my, cw, ch);
+  viewScale *= factor;
+  viewScale = Math.max(0.008, Math.min(1.0, viewScale));
+  // Adjust origin so worldPt stays under mouse
+  viewOriginX = worldPt.x - mx * viewScale;
+  viewOriginY = worldPt.y - (ch - my) * viewScale;
+});
+
+// ═══════════════════════════════════════════
+//  Status panel updates
+// ═══════════════════════════════════════════
+function updateStatusPanel() {
+  if (!latestStatus) {
+    updateLiveStatusPanel();
+    return;
+  }
+
+  const s = latestStatus;
+  const done = s.total_done || 0;
+  const goal = s.total_goal || 0;
+  const pct = goal > 0 ? Math.round(done / goal * 100) : 0;
+
+  progressText.textContent = `${done} / ${goal}`;
+  progressPct.textContent = `${pct}%`;
+  progressBar.style.width = `${pct}%`;
+
+  const stack = s.stack_count || {};
+  $('cnt-green').textContent = stack.green != null ? stack.green : '—';
+  $('cnt-red').textContent   = stack.red   != null ? stack.red   : '—';
+
+  // Cycle time (latest from metrics)
+  if (s.last_cycle_time) {
+    $('val-cycle-time').textContent = s.last_cycle_time.toFixed(1) + 's';
+  }
+
+  // Depth
+  if (s.last_depth && s.last_depth > 0) {
+    $('val-depth').textContent = s.last_depth.toFixed(2) + 'm';
+  } else {
+    $('val-depth').textContent = '—';
+  }
+
+  // Success rate
+  const attempts = s.pick_attempts || 0;
+  const retries  = s.pick_retries_total || 0;
+  if (attempts > 0) {
+    const rate = Math.round((attempts - retries) / attempts * 100);
+    $('val-success').textContent = rate + '%';
+  } else {
+    $('val-success').textContent = '—';
+  }
+  $('val-retries').textContent = retries;
+
+  const state = s.state || 'IDLE';
+  const reason = s.state_reason || '';
+  const errorText = s.last_error || (state === 'ERROR' ? reason : '');
+
+  // Error banner
+  if (state === 'ERROR' || errorText) {
+    errorBanner.style.display = 'block';
+    errorBanner.textContent = `⚠ ${errorText || 'Pipeline error'}`;
+    showFaultModal(errorText || 'Pipeline error');
+    if (!emergencyIssuedForStatusError) {
+      emergencyIssuedForStatusError = true;
+      requestEmergencyStop('dashboard_observed_pipeline_error:' + (errorText || 'unknown'), false);
+    }
+  } else {
+    errorBanner.style.display = 'none';
+    emergencyIssuedForStatusError = false;
+  }
+
+  // State badge
+  stateBadge.textContent = state;
+  const sc = STATE_COLORS[state] || STATE_COLORS['IDLE'];
+  stateBadge.style.background = sc.bg;
+  stateBadge.style.color = sc.fg;
+
+  // Header subtitle
+  const target = s.target_color ? ` 🎯${s.target_color.toUpperCase()}` : '';
+  headerState.textContent = `${state}${target}`;
+  updateLiveStatusPanel();
+  maybeShowVisionDeviceFault(state);
+
+  if (!rosConnected) {
+    setOperatorMessage('等待 ROS 连接…', 'warn');
+  } else if (state === 'LOCALIZING') {
+    if (reason === 'waiting_for_initialpose') {
+      setOperatorMessage('等待 RViz 位姿', 'warn');
+    } else if (reason === 'initialpose_settling' || reason === 'waiting_for_amcl_pose') {
+      setOperatorMessage('定位收敛中', 'warn');
+    } else if (reason === 'waiting_for_start_confirm') {
+      setOperatorMessage('位姿就绪，点击确认开始', 'ok');
+    } else {
+      setOperatorMessage(reason || '定位准备中', 'warn');
+    }
+  } else if (state === 'ERROR') {
+    setOperatorMessage('异常已停止: ' + (errorText || reason || 'unknown'), 'error');
+  } else if (state === 'FINISH') {
+    setOperatorMessage('任务完成', 'ok');
+  } else {
+    setOperatorMessage('流程运行中: ' + state, '');
+  }
+  updateControlButtons();
+}
+
+// ═══════════════════════════════════════════
+//  ROS topic callbacks
+// ═══════════════════════════════════════════
+function onStatus(msg) {
+  try {
+    const parsed = JSON.parse(msg.data);
+    latestStatus = parsed;
+    renderDetectionOverlay();
+    updateStatusPanel();
+  } catch (e) {
+    console.warn('Failed to parse status JSON:', e);
+  }
+}
+
+function onGrabResult(msg) {
+  latestGrabResult = String(msg.data || '').trim();
+  updateLiveStatusPanel();
+}
+
+function onGrabStatus(msg) {
+  try {
+    latestGrabStatus = JSON.parse(msg.data);
+    if (latestGrabStatus && latestGrabStatus.step) {
+      latestGrabResult = latestGrabStatus.step;
+    }
+    updateLiveStatusPanel();
+  } catch (e) {
+    console.warn('Failed to parse grab status JSON:', e);
+  }
+}
+
+function onWpbObjects(msg) {
+  const names = msg.name || [];
+  const xs = msg.x || [];
+  const ys = msg.y || [];
+  const zs = msg.z || [];
+  const ps = msg.probability || [];
+  const count = Math.min(names.length, xs.length, ys.length, zs.length);
+  const objects = [];
+  for (let i = 0; i < count; i++) {
+    objects.push({
+      name: String(names[i] || `obj_${i}`),
+      x: Number(xs[i]),
+      y: Number(ys[i]),
+      z: Number(zs[i]),
+      probability: Number(ps[i] || 0),
+    });
+  }
+  latestWpbObjects = objects;
+  latestWpbObjectsStamp = Date.now();
+  updateLiveStatusPanel();
+}
+
+function onAmclPose(msg) {
+  const q = msg.pose.pose.orientation;
+  const yaw = Math.atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z));
+  latestAmclPose = {
+    x: msg.pose.pose.position.x,
+    y: msg.pose.pose.position.y,
+    yaw: yaw,
+  };
+}
+
+function onMap(msg) {
+  if (mapReceived) return;
+  mapInfo = msg.info;
+  mapData = new Int8Array(msg.data);
+  mapOffscreen = buildOffscreenMap(mapInfo, mapData);
+  setInitialView(mapInfo);
+  mapReceived = true;
+  mapLoading.style.display = 'none';
+}
+
+function onScan(msg) {
+  if (!latestAmclPose || !mapReceived) return;
+
+  const points = [];
+  const angleMin = msg.angle_min;
+  const angleInc = msg.angle_increment;
+  const rangeMax = msg.range_max;
+
+  for (let i = 0; i < msg.ranges.length; i++) {
+    // Decimate: only every 3rd point
+    if (i % 3 !== 0) continue;
+    const r = msg.ranges[i];
+    if (r < msg.range_min || r > rangeMax) continue;
+
+    // Point in laser frame
+    const angle = angleMin + i * angleInc;
+    const lx = r * Math.cos(angle);
+    const ly = r * Math.sin(angle);
+
+    // Transform to map frame using robot pose
+    const cosY = Math.cos(latestAmclPose.yaw);
+    const sinY = Math.sin(latestAmclPose.yaw);
+    const mx = latestAmclPose.x + lx * cosY - ly * sinY;
+    const my = latestAmclPose.y + lx * sinY + ly * cosY;
+
+    points.push({ x: mx, y: my });
+  }
+  latestScan = points;
+}
+
+function onFieldMarkers(msg) {
+  latestFieldMarkers = msg.markers || [];
+}
+
+function onStackMarkers(msg) {
+  const anchors = [];
+  const dropBases = [];
+  let text = null;
+  for (const m of (msg.markers || [])) {
+    // Action is 0=ADD/MODIFY, 3=DELETEALL — ignore deletes
+    if (m.action === 3) continue;
+    const ns = m.ns || '';
+    if (ns.startsWith('stack_anchor')) {
+      anchors.push(m);
+    } else if (ns.startsWith('drop_base')) {
+      dropBases.push(m);
+    } else if (m.type === 9) {
+      text = m;
+    }
+  }
+  latestStackMarkers = { anchors, dropBases, text };
+}
+
+function onPlannedPath(msg) {
+  latestPlannedPath = (msg.poses || []).map(p => ({
+    x: p.pose.position.x,
+    y: p.pose.position.y,
+  }));
+}
+
+function onActualPath(msg) {
+  latestActualPath = (msg.poses || []).map(p => ({
+    x: p.pose.position.x,
+    y: p.pose.position.y,
+  }));
+}
+
+// ═══════════════════════════════════════════
+//  ROS connection
+// ═══════════════════════════════════════════
+function initRosConnection() {
+  const ros = new ROSLIB.Ros({ url: CONFIG.rosbridgeUrl });
+  rosClient = ros;
+
+  confirmStartClient = new ROSLIB.Service({
+    ros: ros,
+    name: CONFIG.services.confirmStart,
+    serviceType: 'std_srvs/Trigger',
+  });
+  emergencyStopPub = new ROSLIB.Topic({
+    ros: ros,
+    name: CONFIG.topics.emergencyStop,
+    messageType: 'std_msgs/String',
+  });
+  cmdVelPub = new ROSLIB.Topic({
+    ros: ros,
+    name: CONFIG.topics.cmdVel,
+    messageType: 'geometry_msgs/Twist',
+  });
+  behaviorsPub = new ROSLIB.Topic({
+    ros: ros,
+    name: CONFIG.topics.behaviors,
+    messageType: 'std_msgs/String',
+  });
+
+  ros.on('connection', () => {
+    rosConnected = true;
+    connDot.classList.add('online');
+    setOperatorMessage('ROS 已连接', 'ok');
+    updateLiveStatusPanel();
+    updateControlButtons();
+    console.log('[ROS] Connected to rosbridge');
+  });
+
+  ros.on('close', () => {
+    rosConnected = false;
+    connDot.classList.remove('online');
+    setOperatorMessage('ROS 连接断开，正在重连', 'warn');
+    updateLiveStatusPanel();
+    updateControlButtons();
+    console.warn('[ROS] rosbridge disconnected');
+    // Auto-reconnect after delay
+    setTimeout(() => {
+      if (!rosConnected) {
+        console.log('[ROS] Attempting reconnect...');
+        ros.connect(CONFIG.rosbridgeUrl);
+      }
+    }, 3000);
+  });
+
+  ros.on('error', (err) => {
+    console.error('[ROS] Connection error:', err);
+    setOperatorMessage('ROS 连接异常', 'error');
+    showFaultModal('ROS 连接异常，请检查 rosbridge_websocket 是否运行。');
+  });
+
+  // Topic subscriptions
+  const sub = (name, type, cb) => {
+    const listener = new ROSLIB.Topic({
+      ros: ros,
+      name: CONFIG.topics[name],
+      messageType: type,
+      throttle_rate: name === 'scan' ? 200 : (name === 'status' ? 500 : 100),
+    });
+    listener.subscribe(cb);
+    console.log(`[ROS] Subscribed to ${CONFIG.topics[name]}`);
+    return listener;
+  };
+
+  sub('status',       'std_msgs/String',                onStatus);
+  sub('amclPose',     'geometry_msgs/PoseWithCovarianceStamped', onAmclPose);
+  sub('map',          'nav_msgs/OccupancyGrid',         onMap);
+  sub('scan',         'sensor_msgs/LaserScan',          onScan);
+  sub('fieldMarkers', 'visualization_msgs/MarkerArray', onFieldMarkers);
+  sub('stackMarkers', 'visualization_msgs/MarkerArray', onStackMarkers);
+  sub('plannedPath',  'nav_msgs/Path',                  onPlannedPath);
+  sub('actualPath',   'nav_msgs/Path',                  onActualPath);
+  sub('grabResult',   'std_msgs/String',                onGrabResult);
+  sub('grabStatus',   'std_msgs/String',                onGrabStatus);
+  sub('wpbObjects',   'wpb_home_behaviors/Coord',       onWpbObjects);
+}
+
+// ═══════════════════════════════════════════
+//  Startup
+// ═══════════════════════════════════════════
+function init() {
+  confirmStartBtn.addEventListener('click', callConfirmStart);
+  emergencyStopBtn.addEventListener('pointerdown', triggerManualEmergencyStop);
+  emergencyStopBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      triggerManualEmergencyStop();
+    }
+  });
+  faultCloseBtn.addEventListener('click', closeFaultModal);
+  startCameraFeed();
+  if (typeof ROSLIB === 'undefined') {
+    setOperatorMessage('roslibjs 未加载', 'error');
+    showFaultModal('roslibjs 未加载，前端无法连接 ROS。请检查网络或改用本地 roslibjs。');
+    return;
+  }
+  updateLiveStatusPanel();
+  initRosConnection();
+  requestAnimationFrame(renderLoop);
+  console.log('[Dashboard] Initialized — Warehouse Sorting Robot');
+  console.log('[Dashboard] Camera:  ' + CONFIG.cameraStreamUrl);
+  console.log('[Dashboard] Rosbridge: ' + CONFIG.rosbridgeUrl);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

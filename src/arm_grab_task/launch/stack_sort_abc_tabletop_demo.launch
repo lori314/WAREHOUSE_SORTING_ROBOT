@@ -1,0 +1,51 @@
+<launch>
+  <arg name="auto_start_pipeline" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="rviz" default="false"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find wpr_simulation)/worlds/wpb_simple.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <node name="spawn_robot" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find wpr_simulation)/models/wpb_home_mani.model -urdf -model wpb_home"/>
+
+  <include file="$(find wpr_simulation)/launch/wpb_home_controllers.launch"/>
+
+  <rosparam file="$(find arm_grab_task)/config/stack_sort_params.yaml" command="load"/>
+  <rosparam file="$(find arm_grab_task)/config/stack_sort_abc_tabletop_params.yaml" command="load"/>
+
+  <!-- A: source table -->
+  <node name="table_a" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/tables/static_table.model -x 0.95 -y 0.0 -z 0 -Y 0 -urdf -model table_a"/>
+
+  <!-- B/C: destination tables on the robot's left and right sides. -->
+  <node name="table_b" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/tables/static_table.model -x 0.00 -y 1.65 -z 0 -Y 1.5708 -urdf -model table_b"/>
+  <node name="table_c" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/tables/static_table.model -x 0.00 -y -1.65 -z 0 -Y -1.5708 -urdf -model table_c"/>
+
+  <node name="green_box_1" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_green_box.model -x 0.78 -y 0.18 -z 0.808 -urdf -model green_box_1"/>
+  <node name="green_box_2" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_green_box.model -x 0.92 -y 0.32 -z 0.808 -urdf -model green_box_2"/>
+  <node name="green_box_3" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_green_box.model -x 1.06 -y 0.46 -z 0.808 -urdf -model green_box_3"/>
+  <node name="blue_box_1" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_blue_box.model -x 0.78 -y -0.18 -z 0.808 -urdf -model blue_box_1"/>
+  <node name="blue_box_2" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_blue_box.model -x 0.92 -y -0.32 -z 0.808 -urdf -model blue_box_2"/>
+  <node name="blue_box_3" pkg="gazebo_ros" type="spawn_model"
+        args="-file $(find arm_grab_task)/models/boxes/visible_blue_box.model -x 1.06 -y -0.46 -z 0.808 -urdf -model blue_box_3"/>
+
+  <node if="$(arg auto_start_pipeline)" name="stack_sort_pipeline"
+        pkg="arm_grab_task" type="stack_sort_pipeline.py" output="screen"/>
+
+  <node if="$(arg rviz)" name="stack_sort_rviz" pkg="rviz" type="rviz"
+        args="-d $(find arm_grab_task)/rviz/stack_sort_status.rviz"/>
+</launch>

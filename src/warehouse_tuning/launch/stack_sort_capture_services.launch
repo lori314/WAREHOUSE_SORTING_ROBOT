@@ -1,0 +1,114 @@
+<launch>
+  <arg name="zone_output_file" default="/tmp/warehouse_tuning_sim/abc_zones.yaml"/>
+  <arg name="feature_output_file" default="/tmp/warehouse_tuning_sim/cargo_features.yaml"/>
+  <arg name="table_height" default="0.75"/>
+  <arg name="map_frame" default="map"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="pose_source" default="tf"/>
+  <arg name="gazebo_model_name" default="wpb_home"/>
+  <arg name="gazebo_reference_frame" default="world"/>
+  <arg name="stack_anchor_forward_offset" default="0.56"/>
+  <arg name="save_debug_images" default="true"/>
+  <arg name="debug_output_dir" default="/tmp/warehouse_tuning_sim/debug_images"/>
+  <arg name="allow_simulated_fallback" default="false"/>
+  <arg name="feature_min_area" default="500"/>
+  <arg name="feature_roi_x" default="0.30"/>
+  <arg name="feature_roi_y" default="0.42"/>
+  <arg name="feature_roi_width" default="0.35"/>
+  <arg name="feature_roi_height" default="0.36"/>
+  <arg name="rgb_topic" default="/kinect2/sd/image_color_rect"/>
+  <arg name="depth_topic" default="/kinect2/sd/image_depth_rect"/>
+  <arg name="camera_info_topic" default="/kinect2/sd/camera_info"/>
+
+  <include file="$(find warehouse_tuning)/launch/abc_zone_capture.launch">
+    <arg name="node_name" value="abc_zone_capture_A"/>
+    <arg name="zone_name" value="A"/>
+    <arg name="zone_role" value="source"/>
+    <arg name="output_file" value="$(arg zone_output_file)"/>
+    <arg name="table_height" value="$(arg table_height)"/>
+    <arg name="pose_source" value="$(arg pose_source)"/>
+    <arg name="map_frame" value="$(arg map_frame)"/>
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="gazebo_model_name" value="$(arg gazebo_model_name)"/>
+    <arg name="gazebo_reference_frame" value="$(arg gazebo_reference_frame)"/>
+    <arg name="service_name" value="/warehouse_tuning/capture_zone_A"/>
+    <arg name="status_topic" value="/warehouse_tuning/abc_zone_status_A"/>
+    <arg name="stack_anchor_forward_offset" value="$(arg stack_anchor_forward_offset)"/>
+  </include>
+
+  <include file="$(find warehouse_tuning)/launch/abc_zone_capture.launch">
+    <arg name="node_name" value="abc_zone_capture_B"/>
+    <arg name="zone_name" value="B"/>
+    <arg name="zone_role" value="drop"/>
+    <arg name="color" value="green"/>
+    <arg name="output_file" value="$(arg zone_output_file)"/>
+    <arg name="table_height" value="$(arg table_height)"/>
+    <arg name="pose_source" value="$(arg pose_source)"/>
+    <arg name="map_frame" value="$(arg map_frame)"/>
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="gazebo_model_name" value="$(arg gazebo_model_name)"/>
+    <arg name="gazebo_reference_frame" value="$(arg gazebo_reference_frame)"/>
+    <arg name="service_name" value="/warehouse_tuning/capture_zone_B"/>
+    <arg name="status_topic" value="/warehouse_tuning/abc_zone_status_B"/>
+    <arg name="stack_anchor_forward_offset" value="$(arg stack_anchor_forward_offset)"/>
+  </include>
+
+  <include file="$(find warehouse_tuning)/launch/abc_zone_capture.launch">
+    <arg name="node_name" value="abc_zone_capture_C"/>
+    <arg name="zone_name" value="C"/>
+    <arg name="zone_role" value="drop"/>
+    <arg name="color" value="red"/>
+    <arg name="output_file" value="$(arg zone_output_file)"/>
+    <arg name="table_height" value="$(arg table_height)"/>
+    <arg name="pose_source" value="$(arg pose_source)"/>
+    <arg name="map_frame" value="$(arg map_frame)"/>
+    <arg name="base_frame" value="$(arg base_frame)"/>
+    <arg name="gazebo_model_name" value="$(arg gazebo_model_name)"/>
+    <arg name="gazebo_reference_frame" value="$(arg gazebo_reference_frame)"/>
+    <arg name="service_name" value="/warehouse_tuning/capture_zone_C"/>
+    <arg name="status_topic" value="/warehouse_tuning/abc_zone_status_C"/>
+    <arg name="stack_anchor_forward_offset" value="$(arg stack_anchor_forward_offset)"/>
+  </include>
+
+  <include file="$(find warehouse_tuning)/launch/cargo_feature_capture.launch">
+    <arg name="node_name" value="cargo_feature_capture_green"/>
+    <arg name="cargo_type" value="green"/>
+    <arg name="output_file" value="$(arg feature_output_file)"/>
+    <arg name="rgb_topic" value="$(arg rgb_topic)"/>
+    <arg name="depth_topic" value="$(arg depth_topic)"/>
+    <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <arg name="service_name" value="/warehouse_tuning/capture_features_green"/>
+    <arg name="status_topic" value="/warehouse_tuning/cargo_feature_status_green"/>
+    <arg name="min_area" value="$(arg feature_min_area)"/>
+    <arg name="roi_x" value="$(arg feature_roi_x)"/>
+    <arg name="roi_y" value="$(arg feature_roi_y)"/>
+    <arg name="roi_width" value="$(arg feature_roi_width)"/>
+    <arg name="roi_height" value="$(arg feature_roi_height)"/>
+    <arg name="require_fresh_image" value="true"/>
+    <arg name="capture_settle_seconds" value="0.5"/>
+    <arg name="save_debug_images" value="$(arg save_debug_images)"/>
+    <arg name="debug_output_dir" value="$(arg debug_output_dir)"/>
+    <arg name="allow_simulated_fallback" value="$(arg allow_simulated_fallback)"/>
+  </include>
+
+  <include file="$(find warehouse_tuning)/launch/cargo_feature_capture.launch">
+    <arg name="node_name" value="cargo_feature_capture_red"/>
+    <arg name="cargo_type" value="red"/>
+    <arg name="output_file" value="$(arg feature_output_file)"/>
+    <arg name="rgb_topic" value="$(arg rgb_topic)"/>
+    <arg name="depth_topic" value="$(arg depth_topic)"/>
+    <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    <arg name="service_name" value="/warehouse_tuning/capture_features_red"/>
+    <arg name="status_topic" value="/warehouse_tuning/cargo_feature_status_red"/>
+    <arg name="min_area" value="$(arg feature_min_area)"/>
+    <arg name="roi_x" value="$(arg feature_roi_x)"/>
+    <arg name="roi_y" value="$(arg feature_roi_y)"/>
+    <arg name="roi_width" value="$(arg feature_roi_width)"/>
+    <arg name="roi_height" value="$(arg feature_roi_height)"/>
+    <arg name="require_fresh_image" value="true"/>
+    <arg name="capture_settle_seconds" value="0.5"/>
+    <arg name="save_debug_images" value="$(arg save_debug_images)"/>
+    <arg name="debug_output_dir" value="$(arg debug_output_dir)"/>
+    <arg name="allow_simulated_fallback" value="$(arg allow_simulated_fallback)"/>
+  </include>
+</launch>
