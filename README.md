@@ -8,11 +8,11 @@ The repository contains the task pipeline, Gazebo acceptance scenarios, field ca
 
 ## Real-Robot Demos
 
-### Pick and place
+### Pick and transport
 
-![The robot grasps a colored box and releases it on the destination table](media/grasping-demo.gif)
+![The robot grasps, lifts, and transports a colored box](media/grasping-demo.gif)
 
-The demo cuts directly from the confirmed pickup to the placement step; mobile-base transport is omitted.
+The demo shows approach, gripper closure, lift confirmation, and stable retention while the cargo is moved.
 
 ### Mobile-base navigation
 
