@@ -8,9 +8,9 @@ The repository contains the task pipeline, Gazebo acceptance scenarios, field ca
 
 ## Real-Robot Demos
 
-### Grasp and lift
+### Grasped cargo transfer
 
-![The robot grasps and lifts a colored box](media/grasping-demo.gif)
+![The robot transfers a firmly grasped colored box](media/grasping-demo.gif)
 
 ### Mobile-base navigation
 

@@ -8,9 +8,9 @@
 
 ## 真机演示
 
-### 夹取与抬升
+### 夹取后搬运
 
-![机器人夹取并抬升彩色方块](media/grasping-demo.gif)
+![机器人稳定夹持彩色方块并搬运](media/grasping-demo.gif)
 
 ### 移动底盘导航
 
