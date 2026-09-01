@@ -2,9 +2,9 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-这是一个基于 ROS Noetic 的仓库货物感知、抓取、导航、分拣与多层码垛项目，运行在兼容 WPB Home 的移动机械臂平台上。
+这是一个基于 ROS Noetic、运行在兼容 WPB Home 移动机械臂平台上的仓库分拣集成项目。项目在现有 ROS/WPB 平台之上实现了 RGB-D 颜色感知、分拣任务编排、现场标定、仿真验收和 Web 监控等功能。
 
-仓库包含任务流水线、Gazebo 验收场景、现场标定工具、真机启动文件和 Web 监控面板。
+仓库包含项目侧的分拣流水线、Gazebo 验收场景、现场标定工具、真机启动文件和 Web 监控面板。底层机器人驱动、ROS Navigation/AMCL/GMapping，以及 WaterPlus/WPB 抓取链路属于外部平台能力，并非本项目从零实现。
 
 ## 真机演示
 
@@ -21,12 +21,12 @@
 ## 主要功能
 
 - 基于 RGB-D 数据的彩色货物检测与目标选择。
-- 对接 WPB 抓取动作，并校验物体是否真实抬升。
-- 建图、AMCL 定位和 A/B/C 作业区域标定。
+- 当前真机路径对接已有 WPB 抓取动作，并监听抓取过程与结果状态。
+- 提供基于 GMapping/AMCL 的现场建图、定位与 A/B/C 作业区域标定工具。
 - 按颜色将货物送往不同放置区域。
-- 可配置的多层码垛位置。
+- 在仿真/自定义控制路径中提供可配置的堆叠层高计数与放置逻辑。
 - 支持超时、重试和定位故障停车的任务状态机。
-- 生成 JSON 和 Markdown 报告的 Gazebo 验收脚本。
+- Gazebo 自动验收与运行指标记录，可导出 JSON/CSV/文本报告。
 - 用于状态、日志、视频流和运行控制的 Web 面板。
 
 ## 系统流程
@@ -49,6 +49,14 @@ flowchart LR
 - **当前真机路径：** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`。项目主流程锁定目标颜色后，将精细靠近与抓取动作交给已有的 WaterPlus/WPB 抓取链路（`wpb_home_objects_3d` + `wpb_home_grab_action`）；收到 `/wpb_home/grab_result=done` 后，再由分拣主流程根据颜色导航至对应作业区。
 
 因此，`ALIGN` 与 `APPROACH` 仍属于通用/仿真状态机，但在当前真机默认配置中会被跳过。
+
+## 项目边界与验证范围
+
+**本仓库实现：** RGB-D 颜色检测、目标选择与分拣任务编排、状态与指标记录、仿真取放逻辑、现场标定辅助、launch/config 集成、自动验收脚本和 Web 监控面板。
+
+**集成的外部平台能力：** WPB Home 底层硬件驱动、Kinect/RPLIDAR 驱动、ROS Navigation、AMCL/GMapping、`wpb_home_objects_3d` 和 `wpb_home_grab_action`。
+
+**仓库媒体中已经展示的真机能力：** 物体夹取并运输、移动底盘导航。仓库同时包含多层放置逻辑和 6 次取放的 Gazebo 验收场景，但现有展示材料**不据此声称已经完成真机全自主多层码垛闭环**。
 
 ## 仓库结构
 
@@ -110,7 +118,7 @@ rosrun arm_grab_task run_stack_sort_acceptance.py \
   --timeout 900 --settle-seconds 1.5
 ```
 
-默认场景会检查 6 次取放、各颜色完成数量和物理抬升事件。报告保存在 `/tmp/arm_grab_task_reports/`。
+默认场景会检查 6 次取放、各颜色完成数量，以及夹爪接触后的 Gazebo 模型抬升判据。这些结果用于验证仿真路径，并不等同于完成 6 次真机抓取。报告保存在 `/tmp/arm_grab_task_reports/`。
 
 ## 真机运行
 
