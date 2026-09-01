@@ -12,7 +12,7 @@
 
 ![机器人夹取、抬升并运输彩色方块](media/grasping-demo.gif)
 
-演示包含靠近目标、闭合夹爪、确认抬升，以及运动过程中保持稳定夹持。
+演示中，机器人通过集成的 WPB 抓取行为完成靠近目标、闭合夹爪与抬升，并在移动底盘运动过程中保持稳定夹持。
 
 ### 移动底盘导航
 
@@ -43,7 +43,12 @@ flowchart LR
     Task --> Dashboard[Web 面板与验收报告]
 ```
 
-主流程状态为 `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`，定位检查和恢复逻辑贯穿各运动阶段。
+仓库保留了两套执行路径，因为仿真与当前真机配置对“靠近/抓取”的职责划分不同：
+
+- **仿真 / 自定义控制路径：** `SEARCH -> ALIGN -> APPROACH -> PICK -> DROP`。项目自身的状态机负责视觉居中、短距离靠近以及后续取放流程。
+- **当前真机路径：** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`。项目主流程锁定目标颜色后，将精细靠近与抓取动作交给已有的 WaterPlus/WPB 抓取链路（`wpb_home_objects_3d` + `wpb_home_grab_action`）；收到 `/wpb_home/grab_result=done` 后，再由分拣主流程根据颜色导航至对应作业区。
+
+因此，`ALIGN` 与 `APPROACH` 仍属于通用/仿真状态机，但在当前真机默认配置中会被跳过。
 
 ## 仓库结构
 
@@ -131,7 +136,7 @@ rosrun warehouse_tuning field_calibration_wizard.py \
 roslaunch arm_grab_task stack_sort_field.launch rviz:=true
 ```
 
-地图、区域位姿、相机特征和运行报告都属于本地运行数据，已由 Git 忽略。
+在当前默认真机配置中，项目主流程负责定位、基于颜色的目标选择、任务状态管理以及 B/C 区分流；最终的目标精细靠近和抓取动作由已有 WPB 抓取行为完成。地图、区域位姿、相机特征和运行报告都属于本地运行数据，已由 Git 忽略。
 
 ## Web 监控面板
 
