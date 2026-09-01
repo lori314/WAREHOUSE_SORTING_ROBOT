@@ -2,9 +2,9 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-A ROS Noetic project for warehouse-style cargo perception, grasping, navigation, sorting, and multi-layer stacking on a WPB Home-compatible mobile manipulator.
+A ROS Noetic integration project for warehouse-style cargo sorting on a WPB Home-compatible mobile manipulator. The project adds RGB-D color perception, task orchestration, field calibration, simulation acceptance, and a browser-based monitoring dashboard around the existing ROS/WPB platform.
 
-The repository contains the task pipeline, Gazebo acceptance scenarios, field calibration tools, real-robot launch files, and a browser-based monitoring dashboard.
+The repository contains the project-specific sorting pipeline, Gazebo acceptance scenarios, field calibration tools, real-robot launch files, and the monitoring dashboard. Low-level robot drivers, ROS Navigation/AMCL/GMapping, and the WaterPlus/WPB grasp stack are external platform dependencies rather than reimplemented components.
 
 ## Real-Robot Demos
 
@@ -21,12 +21,12 @@ The demo shows the integrated WPB grasp behavior approaching the target, closing
 ## Capabilities
 
 - RGB-D-based colored cargo detection and target selection.
-- WPB grasp-action integration with lift verification.
-- Mapping, AMCL localization, and A/B/C work-zone calibration.
+- Integration with the existing WPB grasp action on the current physical-robot path, including result/status monitoring.
+- Field tooling for GMapping/AMCL-based localization and A/B/C work-zone calibration.
 - Color-based routing to separate drop zones.
-- Configurable multi-layer stacking positions.
+- Configurable stack-height bookkeeping and placement logic in the simulation/custom-control path.
 - Task state machine with timeouts, retries, and localization fault stops.
-- Gazebo acceptance scripts with JSON and Markdown reports.
+- Gazebo acceptance scripts and runtime metrics exported as JSON/CSV/text reports.
 - Web dashboard for task state, logs, video streams, and runtime controls.
 
 ## System Flow
@@ -49,6 +49,14 @@ The repository keeps two execution paths because simulation and the current phys
 - **Current real-robot path:** `LOCALIZING -> SEARCH -> PICK -> DROP -> SEARCH/FINISH`. After the project pipeline locks a target color, it delegates fine target approach and grasp execution to the existing WaterPlus/WPB grasp stack (`wpb_home_objects_3d` + `wpb_home_grab_action`). The sorting pipeline resumes after `/wpb_home/grab_result=done` and routes the box to the corresponding work zone.
 
 Therefore, `ALIGN` and `APPROACH` remain part of the generic/simulation state machine, but are bypassed by default in the current real-robot configuration.
+
+## Scope and Verification
+
+**Implemented in this repository:** RGB-D color detection, target selection and sorting orchestration, state/metrics reporting, simulation pick-place logic, field calibration helpers, launch/config integration, acceptance scripts, and the Web dashboard.
+
+**Integrated platform components:** WPB Home hardware drivers, Kinect/RPLIDAR drivers, ROS Navigation, AMCL/GMapping, `wpb_home_objects_3d`, and `wpb_home_grab_action`.
+
+**Demonstrated on the physical robot in the included media:** object pick-and-transport and mobile-base navigation. The repository also contains configurable multi-level placement logic and a six-operation Gazebo acceptance scenario, but the included evidence does **not** claim a fully autonomous multi-layer physical-robot stacking run.
 
 ## Repository Layout
 
@@ -110,7 +118,7 @@ rosrun arm_grab_task run_stack_sort_acceptance.py \
   --timeout 900 --settle-seconds 1.5
 ```
 
-The default scenario checks six pick-and-place operations, per-color completion counts, and physical lift events. Reports are written to `/tmp/arm_grab_task_reports/`.
+The default scenario checks six pick-and-place operations, per-color completion counts, and Gazebo model-lift criteria after gripper contact. These checks validate the simulation path; they are not evidence of six physical-robot grasps. Reports are written to `/tmp/arm_grab_task_reports/`.
 
 ## Real-Robot Workflow
 
